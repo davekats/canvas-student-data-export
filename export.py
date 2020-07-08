@@ -15,8 +15,8 @@ API_KEY = ""
 USER_ID = 0000000
 # Directory in which to download course information to (will be created if not present)
 DL_LOCATION = "./output"
-# List of Course IDs that should be skipped
-COURSES_TO_SKIP = []
+# List of Course IDs that should be skipped (need to be integers)
+COURSES_TO_SKIP = [288290, 512033]
 
 class moduleItemView():
     title = ""
@@ -160,7 +160,7 @@ def findCourseModules(course, course_view):
                 print(e)
 
             module_views.append(module_view)
-            
+
     except Exception as e:
         print("Skipping entire module that gave the following error:")
         print(e)
@@ -182,6 +182,7 @@ def downloadCourseFiles(course, course_view):
 
             # Download file if it doesn't already exist
             if not os.path.exists(dl_path):
+                print('Downloading: {}'.format(dl_path))
                 file.download(dl_path)
     except Exception as e:
         print("Skipping file download that gave the following error:")
@@ -201,7 +202,7 @@ def getCoursePageUrls(course):
         if e.message != "Not Found":
             print("Skipping page that gave the following error:")
             print(e)
-    
+
     return page_urls
 
 def findCoursePages(course):
@@ -229,7 +230,7 @@ def findCoursePages(course):
     except Exception as e:
         print("Skipping page download that gave the following error:")
         print(e)
-    
+
     return page_views
 
 def findCourseAssignments(course):
@@ -240,6 +241,7 @@ def findCourseAssignments(course):
         assignments = course.get_assignments()
 
         for assignment in assignments:
+            print(assignment)
             # Create a new assignment view
             assignment_view = assignmentView()
 
@@ -251,6 +253,23 @@ def findCourseAssignments(course):
             assignment_view.assigned_date = assignment.created_at_date.strftime("%B %d, %Y %I:%M %p") if hasattr(assignment, "created_at_date") else ""
             # Due date
             assignment_view.due_date = assignment.due_at_date.strftime("%B %d, %Y %I:%M %p") if hasattr(assignment, "due_at_date") else ""
+
+            # Download all submissions
+            try:
+                submissions = assignment.get_submissions()
+            except:
+                print("Got no submissions for this assignment")
+            else:
+                print(submissions)
+            for submission in submissions:
+                print(submission)
+                try:
+                    submission.attachments
+                except AttributeError:
+                    print('No attachements')
+                else:
+                    for attachment in submission.attachments:
+                        print(attachment["url"])
 
             # Get my user"s submission object
             submission = assignment.get_submission(USER_ID)
@@ -268,6 +287,9 @@ def findCourseAssignments(course):
             assignment_view.submission.submission_comments = str(submission.submission_comments) if hasattr(submission, "submission_comments") else ""
 
             assignment_views.append(assignment_view)
+
+
+
     except Exception as e:
         print("Skipping assignment that gave the following error:")
         print(e)
@@ -287,7 +309,7 @@ def findCourseAnnouncements(course):
     except Exception as e:
         print("Skipping announcement that gave the following error:")
         print(e)
-    
+
     return announcement_views
 
 def getDiscussionView(discussion_topic):
@@ -312,7 +334,7 @@ def getDiscussionView(discussion_topic):
             for topic_entry in discussion_topic_entries:
                 # Create new discussion view for the topic_entry
                 topic_entry_view = topicEntryView()
-                
+
                 # Author
                 topic_entry_view.author = str(topic_entry.user_name) if hasattr(topic_entry, "user_name") else ""
                 # Posted date
@@ -416,20 +438,20 @@ def main():
     # Canvas API URL
     print("We will need your organization's Canvas Base URL. This is probably something like https://{schoolName}.instructure.com)")
     global API_URL
-    API_URL = input("Enter your organization's Canvas Base URL: ")
+    #API_URL = input("Enter your organization's Canvas Base URL: ")
 
     # Canvas API key
     print("\nWe will need a valid API key for your user. You can generate one in Canvas once you are logged in.")
     global API_KEY
-    API_KEY = input("Enter a valid API key for your user: ")
-    
+    #API_KEY = input("Enter a valid API key for your user: ")
+
     # My Canvas User ID
     print("\nWe will need your Canvas User ID. You can find this by logging in to canvas and then going to this URL in the same browser {yourCanvasBaseUrl}/api/v1/users/self")
     global USER_ID
-    USER_ID = input("Enter your Canvas User ID: ")
+    #USER_ID = input("Enter your Canvas User ID: ")
 
     print("\nConnecting to canvas\n")
-        
+
     # Initialize a new Canvas object
     canvas = Canvas(API_URL, API_KEY)
 
@@ -437,7 +459,7 @@ def main():
     # Create directory if not present
     if not os.path.exists(DL_LOCATION):
         os.makedirs(DL_LOCATION)
-    
+
     all_courses_views = []
 
     try:
@@ -466,7 +488,7 @@ def main():
     except Exception as e:
         print("Skipping entire course that gave the following error:")
         print(e)
-    
+
     print("Exporting data from all courses combined as one file: all_output.json")
     # Awful hack to make the JSON pretty. Decode it with Python stdlib json module then re-encode with indentation
     json_str = json.dumps(json.loads(jsonpickle.encode(all_courses_views, unpicklable = False)), indent = 4)
