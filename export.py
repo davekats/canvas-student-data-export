@@ -102,10 +102,12 @@ class submissionView():
 
 class attachmentView():
     filename = ""
+    id = 0
     url = ""
 
     def __init__(self):
         self.filename = ""
+        self.id = 0
         self.url = ""
 
 
@@ -256,7 +258,8 @@ def download_submission_attachments(course, course_view):
             if not os.path.exists(attachment_dir):
                 os.makedirs(attachment_dir)
             for attachment in submission.attachments:
-                filepath = os.path.join(attachment_dir, attachment.filename)
+                filepath = os.path.join(attachment_dir, str(attachment.id) +
+                                        "_" + attachment.filename)
                 if not os.path.exists(filepath):
                     print('Downloading attachment: {}'.format(filepath))
                     r = requests.get(attachment.url, allow_redirects=True)
@@ -397,6 +400,7 @@ def findCourseAssignments(course):
                     for attachment in submission.attachments:
                         attach_view = attachmentView()
                         attach_view.url = attachment["url"]
+                        attach_view.id = attachment["id"]
                         attach_view.filename = attachment["filename"]
                         sub_view.attachments.append(attach_view)
                 assignment_view.submissions.append(sub_view)
