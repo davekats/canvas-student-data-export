@@ -1,11 +1,14 @@
-from canvasapi import Canvas
-import requests
-import traceback
-import jsonpickle
+# built in
 import json
-import dateutil.parser
 import os
 import string
+import traceback
+
+# external
+from canvasapi import Canvas
+import dateutil.parser
+import jsonpickle
+import requests
 
 # Canvas API URL
 API_URL = ""
@@ -13,15 +16,18 @@ API_URL = ""
 API_KEY = ""
 # My Canvas User ID
 USER_ID = 0000000
-# Directory in which to download course information to (will be created if not present)
+# Directory in which to download course information to (will be created if not
+# present)
 DL_LOCATION = "./output"
 # List of Course IDs that should be skipped (need to be integers)
 COURSES_TO_SKIP = [288290, 512033]
+
 
 class moduleItemView():
     title = ""
     content_type = ""
     external_url = ""
+
 
 class moduleView():
     name = ""
@@ -30,16 +36,19 @@ class moduleView():
     def __init__(self):
         self.items = []
 
+
 class pageView():
     title = ""
     body = ""
     created_date = ""
     last_updated_date = ""
 
+
 class topicReplyView():
     author = ""
     posted_date = ""
     body = ""
+
 
 class topicEntryView():
     author = ""
@@ -49,6 +58,7 @@ class topicEntryView():
 
     def __init__(self):
         self.topic_replies = []
+
 
 class discussionView():
     title = ""
@@ -60,21 +70,32 @@ class discussionView():
     def __init__(self):
         self.topic_entries = []
 
+
 class submissionView():
     grade = ""
     raw_score = ""
     total_possible_points = ""
     submission_comments = ""
+    user_id = None  # integer
+    attachments = []
+
+
+class attachmentView():
+    filename = ""
+    url = ""
+
 
 class assignmentView():
     title = ""
     description = ""
     assigned_date = ""
     due_date = ""
+    submissions = {}
     submission = None
 
     def __init__(self):
         self.submission = submissionView()
+
 
 class courseView():
     term = ""
@@ -89,6 +110,7 @@ class courseView():
         self.announcements = []
         self.discussions = []
 
+
 def makeValidFilename(input_str):
     # Remove invalid characters
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
@@ -98,6 +120,7 @@ def makeValidFilename(input_str):
     input_str = input_str.lstrip().rstrip()
 
     return input_str
+
 
 def findCourseModules(course, course_view):
     modules_dir = DL_LOCATION + "/" + course_view.term + "/" + course_view.course_code + "/modules"
@@ -261,15 +284,20 @@ def findCourseAssignments(course):
                 print("Got no submissions for this assignment")
             else:
                 print(submissions)
-            for submission in submissions:
-                print(submission)
-                try:
-                    submission.attachments
-                except AttributeError:
-                    print('No attachements')
-                else:
-                    for attachment in submission.attachments:
-                        print(attachment["url"])
+                for submission in submissions:
+                    print(submission)
+                    sub_view = submissionView()
+                    try:
+                        submission.attachments
+                    except AttributeError:
+                        print('No attachments')
+                    else:
+                        for attachment in submission.attachments:
+                            attach_view = attachmentView()
+                            attach_view.url = attachment.url
+                            attach_view.filename = attachment.filename
+                            sub_view.attachments.append
+                            print(attachment["url"])
 
             # Get my user"s submission object
             submission = assignment.get_submission(USER_ID)
