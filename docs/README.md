@@ -36,10 +36,14 @@ Example:
 
 # Getting Started
 ## Dependencies
-To run the program, you will need the following dependencies:
-`pip install requests`
-`pip install jsonpickle`
-`pip install canvasapi`
+To run the program, you will need the following dependencies:  
+`pip install requests`  
+`pip install jsonpickle`  
+`pip install canvasapi` 
+`pip install python-dateutil`
+
+You can install these dependencies using
+`pip install -r requirements.txt`
 
 Then run from the command line:
 `python export.py`
