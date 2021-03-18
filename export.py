@@ -329,103 +329,110 @@ def findCourseAssignments(course):
 
     # Get all assignments
     assignments = course.get_assignments()
+    
+    try:
+        for assignment in assignments:
+            # Create a new assignment view
+            assignment_view = assignmentView()
 
-    for assignment in assignments:
-        # Create a new assignment view
-        assignment_view = assignmentView()
+            # Title
+            if hasattr(assignment, "name"):
+                assignment_view.title = str(assignment.name)
+            else:
+                assignment_view.title = ""
+            # Description
+            if hasattr(assignment, "description"):
+                assignment_view.description = str(assignment.description)
+            else:
+                assignment_view.description = ""
+            # Assigned date
+            if hasattr(assignment, "created_at_date"):
+                assignment_view.assigned_date = assignment.created_at_date.strftime(DATE_TEMPLATE)
+            else:
+                assignment_view.assigned_date = ""
+            # Due date
+            if hasattr(assignment, "due_at_date"):
+                assignment_view.due_date = assignment.due_at_date.strftime(DATE_TEMPLATE)
+            else:
+                assignment_view.due_date = ""
 
-        # Title
-        if hasattr(assignment, "name"):
-            assignment_view.title = str(assignment.name)
-        else:
-            assignment_view.title = ""
-        # Description
-        if hasattr(assignment, "description"):
-            assignment_view.description = str(assignment.description)
-        else:
-            assignment_view.description = ""
-        # Assigned date
-        if hasattr(assignment, "created_at_date"):
-            assignment_view.assigned_date = assignment.created_at_date.strftime(DATE_TEMPLATE)
-        else:
-            assignment_view.assigned_date = ""
-        # Due date
-        if hasattr(assignment, "due_at_date"):
-            assignment_view.due_date = assignment.due_at_date.strftime(DATE_TEMPLATE)
-        else:
-            assignment_view.due_date = ""
+            # Download all submissions
+            try:
+                submissions = assignment.get_submissions()
+            # TODO : Figure out the exact error raised
+            except:
+                print("Got no submissions for this assignment")
+            else:
+                try:
+                    for submission in submissions:
 
-        # Download all submissions
-        try:
-            submissions = assignment.get_submissions()
-        # TODO : Figure out the exact error raised
-        except:
-            print("Got no submissions for this assignment")
-        else:
-            for submission in submissions:
+                        sub_view = submissionView()
 
-                sub_view = submissionView()
+                        # My grade
+                        if hasattr(submission, "grade"):
+                            sub_view.grade = str(submission.grade)
+                        else:
+                            sub_view.grade = ""
+                        # My raw score
+                        if hasattr(submission, "score"):
+                            sub_view.raw_score = str(submission.score)
+                        else:
+                            sub_view.raw_score = ""
+                        # Total possible score
+                        if hasattr(assignment, "points_possible"):
+                            sub_view.total_possible_points = str(assignment.points_possible)
+                        else:
+                            sub_view.total_possible_points = ""
+                        # Submission comments
+                        if hasattr(submission, "submission_comments"):
+                            sub_view.submission_comments = str(submission.submission_comments)
+                        else:
+                            sub_view.submission_comments = ""
+
+                        if hasattr(submission, "user_id"):
+                            sub_view.user_id = str(submission.user_id)
+                        else:
+                            sub_view.user_id = "no-id"
+
+                        try:
+                            submission.attachments
+                        except AttributeError:
+                            print('No attachments')
+                        else:
+                            for attachment in submission.attachments:
+                                attach_view = attachmentView()
+                                attach_view.url = attachment["url"]
+                                attach_view.id = attachment["id"]
+                                attach_view.filename = attachment["filename"]
+                                sub_view.attachments.append(attach_view)
+                        assignment_view.submissions.append(sub_view)
+                except Exception as e:
+                    print("Skipping submission that gave the following error:")
+                    print(e)
+
+            # The following is only useful if you are a student in the class.
+            # Get my user"s submission object
+            try:
+                submission = assignment.get_submission(USER_ID)
+            except ResourceDoesNotExist:
+                print('No submission for user: {}'.format(USER_ID))
+            else:
+                # Create a new submission view
+                assignment_view.submission = submissionView()
 
                 # My grade
-                if hasattr(submission, "grade"):
-                    sub_view.grade = str(submission.grade)
-                else:
-                    sub_view.grade = ""
+                assignment_view.submission.grade = str(submission.grade) if hasattr(submission, "grade") else ""
                 # My raw score
-                if hasattr(submission, "score"):
-                    sub_view.raw_score = str(submission.score)
-                else:
-                    sub_view.raw_score = ""
+                assignment_view.submission.raw_score = str(submission.score) if hasattr(submission, "score") else ""
                 # Total possible score
-                if hasattr(assignment, "points_possible"):
-                    sub_view.total_possible_points = str(assignment.points_possible)
-                else:
-                    sub_view.total_possible_points = ""
+                assignment_view.submission.total_possible_points = str(assignment.points_possible) if hasattr(assignment, "points_possible") else ""
                 # Submission comments
-                if hasattr(submission, "submission_comments"):
-                    sub_view.submission_comments = str(submission.submission_comments)
-                else:
-                    sub_view.submission_comments = ""
+                assignment_view.submission.submission_comments = str(submission.submission_comments) if hasattr(submission, "submission_comments") else ""
 
-                if hasattr(submission, "user_id"):
-                    sub_view.user_id = str(submission.user_id)
-                else:
-                    sub_view.user_id = "no-id"
-
-                try:
-                    submission.attachments
-                except AttributeError:
-                    print('No attachments')
-                else:
-                    for attachment in submission.attachments:
-                        attach_view = attachmentView()
-                        attach_view.url = attachment["url"]
-                        attach_view.id = attachment["id"]
-                        attach_view.filename = attachment["filename"]
-                        sub_view.attachments.append(attach_view)
-                assignment_view.submissions.append(sub_view)
-
-        # The following is only useful if you are a student in the class.
-        # Get my user"s submission object
-        try:
-            submission = assignment.get_submission(USER_ID)
-        except ResourceDoesNotExist:
-            print('No submission for user: {}'.format(USER_ID))
-        else:
-            # Create a new submission view
-            assignment_view.submission = submissionView()
-
-            # My grade
-            assignment_view.submission.grade = str(submission.grade) if hasattr(submission, "grade") else ""
-            # My raw score
-            assignment_view.submission.raw_score = str(submission.score) if hasattr(submission, "score") else ""
-            # Total possible score
-            assignment_view.submission.total_possible_points = str(assignment.points_possible) if hasattr(assignment, "points_possible") else ""
-            # Submission comments
-            assignment_view.submission.submission_comments = str(submission.submission_comments) if hasattr(submission, "submission_comments") else ""
-
-        assignment_views.append(assignment_view)
-
+            assignment_views.append(assignment_view)
+    except Exception as e:
+        print("Skipping course assignments that gave the following error:")
+        print(e)
 
     return assignment_views
 
