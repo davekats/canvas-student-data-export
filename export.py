@@ -148,6 +148,18 @@ def makeValidFilename(input_str):
 
     return input_str
 
+def makeValidFolderPath(input_str):
+    # Remove invalid characters
+    valid_chars = "-_.()/ %s%s" % (string.ascii_letters, string.digits)
+    input_str = "".join(c for c in input_str if c in valid_chars)
+
+    # Remove leading and trailing whitespace
+    input_str = input_str.lstrip().rstrip().strip("/").strip("\\")
+
+    # Replace path separators with OS default
+    input_str=input_str.replace("/",os.sep)
+    
+    return input_str
 
 def findCourseModules(course, course_view):
     modules_dir = os.path.join(DL_LOCATION, course_view.term,
@@ -220,8 +232,9 @@ def findCourseModules(course, course_view):
 
 
 def downloadCourseFiles(course, course_view):
+    # file full_name starts with "course files"
     dl_dir = os.path.join(DL_LOCATION, course_view.term,
-                          course_view.course_code, "files")
+                          course_view.course_code)
 
     # Create directory if not present
     if not os.path.exists(dl_dir):
@@ -231,7 +244,14 @@ def downloadCourseFiles(course, course_view):
         files = course.get_files()
 
         for file in files:
-            dl_path = os.path.join(dl_dir,
+            file_folder=course.get_folder(file.folder_id)
+            
+            folder_dl_dir=os.path.join(dl_dir,makeValidFolderPath(file_folder.full_name))
+            
+            if not os.path.exists(folder_dl_dir):
+                os.makedirs(folder_dl_dir)
+        
+            dl_path = os.path.join(folder_dl_dir,
                                    makeValidFilename(str(file.display_name)))
 
             # Download file if it doesn't already exist
@@ -253,13 +273,13 @@ def download_submission_attachments(course, course_view):
 
     for assignment in course_view.assignments:
         for submission in assignment.submissions:
-            attachment_dir = os.path.join(course_dir, assignment.title,
+            attachment_dir = os.path.join(course_dir, "assignments", assignment.title,
                                           str(submission.user_id))
-            if not os.path.exists(attachment_dir):
+            if (not os.path.exists(attachment_dir)) and (submission.attachments):
                 os.makedirs(attachment_dir)
             for attachment in submission.attachments:
-                filepath = os.path.join(attachment_dir, str(attachment.id) +
-                                        "_" + attachment.filename)
+                filepath = os.path.join(attachment_dir, makeValidFilename(str(attachment.id) +
+                                        "_" + attachment.filename))
                 if not os.path.exists(filepath):
                     print('Downloading attachment: {}'.format(filepath))
                     r = requests.get(attachment.url, allow_redirects=True)
@@ -337,7 +357,7 @@ def findCourseAssignments(course):
 
             # Title
             if hasattr(assignment, "name"):
-                assignment_view.title = str(assignment.name)
+                assignment_view.title = makeValidFilename(str(assignment.name))
             else:
                 assignment_view.title = ""
             # Description
@@ -534,10 +554,10 @@ def getCourseView(course):
     course_view = courseView()
 
     # Course term
-    course_view.term = course.term["name"] if hasattr(course, "term") and "name" in course.term.keys() else ""
+    course_view.term = makeValidFilename(course.term["name"] if hasattr(course, "term") and "name" in course.term.keys() else "")
 
     # Course code
-    course_view.course_code = course.course_code if hasattr(course, "course_code") else ""
+    course_view.course_code = makeValidFilename(course.course_code if hasattr(course, "course_code") else "")
 
     # Course name
     course_view.name = course.name if hasattr(course, "name") else ""
