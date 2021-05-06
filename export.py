@@ -558,11 +558,11 @@ def getCourseView(course):
 
     # Course announcements
     print("  Getting announcements")
-    #course_view.announcements = findCourseAnnouncements(course)
+    course_view.announcements = findCourseAnnouncements(course)
 
     # Course discussions
     print("  Getting discussions")
-    #course_view.discussions = findCourseDiscussions(course)
+    course_view.discussions = findCourseDiscussions(course)
 
     # Course pages
     print("  Getting pages")
@@ -637,7 +637,7 @@ if __name__ == "__main__":
         all_courses_views.append(course_view)
 
         print("  Downloading all files")
-        #downloadCourseFiles(course, course_view)
+        downloadCourseFiles(course, course_view)
 
         print("  Downloading submission attachments")
         download_submission_attachments(course, course_view)
