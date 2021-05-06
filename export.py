@@ -6,6 +6,7 @@ import string
 # external
 from canvasapi import Canvas
 from canvasapi.exceptions import ResourceDoesNotExist
+from canvasapi.exceptions import Unauthorized
 import dateutil.parser
 import jsonpickle
 import requests
@@ -116,11 +117,9 @@ class assignmentView():
     description = ""
     assigned_date = ""
     due_date = ""
-    submission = None
     submissions = []
 
     def __init__(self):
-        self.submission = submissionView()
         self.submissions = []
 
 
@@ -376,12 +375,20 @@ def findCourseAssignments(course):
             else:
                 assignment_view.due_date = ""
 
-            # Download all submissions
             try:
-                submissions = assignment.get_submissions()
-            # TODO : Figure out the exact error raised
-            except:
-                print("Got no submissions for this assignment")
+                try: # Download all submissions for entire class
+                    submissions = assignment.get_submissions()
+                    submissions[0] # Trigger Unauthorized if not allowed
+                except Unauthorized:
+                    print("Not authorized to download entire class submissions for this assignment")
+                    # Download submission for this user only
+                    submissions = [assignment.get_submission(USER_ID)]
+                submissions[0] #throw error if no submissions found at all but without error
+            except (ResourceDoesNotExist, NameError, IndexError):
+                print('Got no submissions from either class or user: {}'.format(USER_ID))
+            except Exception as e:
+                print("Failed to retrieve submissions for this assignment")
+                print(e.__class__.__name__)
             else:
                 try:
                     for submission in submissions:
@@ -429,25 +436,6 @@ def findCourseAssignments(course):
                 except Exception as e:
                     print("Skipping submission that gave the following error:")
                     print(e)
-
-            # The following is only useful if you are a student in the class.
-            # Get my user"s submission object
-            try:
-                submission = assignment.get_submission(USER_ID)
-            except ResourceDoesNotExist:
-                print('No submission for user: {}'.format(USER_ID))
-            else:
-                # Create a new submission view
-                assignment_view.submission = submissionView()
-
-                # My grade
-                assignment_view.submission.grade = str(submission.grade) if hasattr(submission, "grade") else ""
-                # My raw score
-                assignment_view.submission.raw_score = str(submission.score) if hasattr(submission, "score") else ""
-                # Total possible score
-                assignment_view.submission.total_possible_points = str(assignment.points_possible) if hasattr(assignment, "points_possible") else ""
-                # Submission comments
-                assignment_view.submission.submission_comments = str(submission.submission_comments) if hasattr(submission, "submission_comments") else ""
 
             assignment_views.append(assignment_view)
     except Exception as e:
@@ -570,11 +558,11 @@ def getCourseView(course):
 
     # Course announcements
     print("  Getting announcements")
-    course_view.announcements = findCourseAnnouncements(course)
+    #course_view.announcements = findCourseAnnouncements(course)
 
     # Course discussions
     print("  Getting discussions")
-    course_view.discussions = findCourseDiscussions(course)
+    #course_view.discussions = findCourseDiscussions(course)
 
     # Course pages
     print("  Getting pages")
@@ -649,7 +637,7 @@ if __name__ == "__main__":
         all_courses_views.append(course_view)
 
         print("  Downloading all files")
-        downloadCourseFiles(course, course_view)
+        #downloadCourseFiles(course, course_view)
 
         print("  Downloading submission attachments")
         download_submission_attachments(course, course_view)
