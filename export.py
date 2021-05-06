@@ -278,8 +278,9 @@ def download_submission_attachments(course, course_view):
 
     for assignment in course_view.assignments:
         for submission in assignment.submissions:
-            attachment_dir = os.path.join(course_dir, "assignments", assignment.title,
-                                          str(submission.user_id))
+            attachment_dir = os.path.join(course_dir, "assignments", assignment.title)
+            if(len(assignment.submissions)!=1):
+                attachment_dir = os.path.join(attachment_dir,str(submission.user_id))
             if (not os.path.exists(attachment_dir)) and (submission.attachments):
                 os.makedirs(attachment_dir)
             for attachment in submission.attachments:
