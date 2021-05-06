@@ -155,7 +155,6 @@ def makeValidFolderPath(input_str):
     valid_chars = "-_.()/ %s%s" % (string.ascii_letters, string.digits)
     input_str = input_str.replace("+"," ") # Canvas default for spaces
     input_str = input_str.replace(":","-")
-    input_str = input_str.replace("/","-")
     input_str = "".join(c for c in input_str if c in valid_chars)
 
     # Remove leading and trailing whitespace, separators
