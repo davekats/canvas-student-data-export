@@ -40,8 +40,8 @@ Example:
 To run the program, you will need the following dependencies:  
 `pip install requests`  
 `pip install jsonpickle`  
-`pip install canvasapi` 
-`pip install python-dateutil`
+`pip install canvasapi`  
+`pip install python-dateutil`  
 `pip install PyYAML`
 
 You can install these dependencies using
