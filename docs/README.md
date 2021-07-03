@@ -35,12 +35,14 @@ Example:
 - all_output.json
 
 # Getting Started
+
 ## Dependencies
 To run the program, you will need the following dependencies:  
 `pip install requests`  
 `pip install jsonpickle`  
 `pip install canvasapi` 
 `pip install python-dateutil`
+`pip install PyYAML`
 
 You can install these dependencies using
 `pip install -r requirements.txt`
