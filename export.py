@@ -6,6 +6,7 @@ import string
 # external
 from canvasapi import Canvas
 from canvasapi.exceptions import ResourceDoesNotExist
+from canvasapi.exceptions import Unauthorized
 import dateutil.parser
 import jsonpickle
 import requests
@@ -116,11 +117,9 @@ class assignmentView():
     description = ""
     assigned_date = ""
     due_date = ""
-    submission = None
     submissions = []
 
     def __init__(self):
-        self.submission = submissionView()
         self.submissions = []
 
 
@@ -141,6 +140,9 @@ class courseView():
 def makeValidFilename(input_str):
     # Remove invalid characters
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+    input_str = input_str.replace("+"," ") # Canvas default for spaces
+    input_str = input_str.replace(":","-")
+    input_str = input_str.replace("/","-")
     input_str = "".join(c for c in input_str if c in valid_chars)
 
     # Remove leading and trailing whitespace
@@ -148,6 +150,20 @@ def makeValidFilename(input_str):
 
     return input_str
 
+def makeValidFolderPath(input_str):
+    # Remove invalid characters
+    valid_chars = "-_.()/ %s%s" % (string.ascii_letters, string.digits)
+    input_str = input_str.replace("+"," ") # Canvas default for spaces
+    input_str = input_str.replace(":","-")
+    input_str = "".join(c for c in input_str if c in valid_chars)
+
+    # Remove leading and trailing whitespace, separators
+    input_str = input_str.lstrip().rstrip().strip("/").strip("\\")
+
+    # Replace path separators with OS default
+    input_str=input_str.replace("/",os.sep)
+    
+    return input_str
 
 def findCourseModules(course, course_view):
     modules_dir = os.path.join(DL_LOCATION, course_view.term,
@@ -220,8 +236,9 @@ def findCourseModules(course, course_view):
 
 
 def downloadCourseFiles(course, course_view):
+    # file full_name starts with "course files"
     dl_dir = os.path.join(DL_LOCATION, course_view.term,
-                          course_view.course_code, "files")
+                          course_view.course_code)
 
     # Create directory if not present
     if not os.path.exists(dl_dir):
@@ -231,7 +248,14 @@ def downloadCourseFiles(course, course_view):
         files = course.get_files()
 
         for file in files:
-            dl_path = os.path.join(dl_dir,
+            file_folder=course.get_folder(file.folder_id)
+            
+            folder_dl_dir=os.path.join(dl_dir,makeValidFolderPath(file_folder.full_name))
+            
+            if not os.path.exists(folder_dl_dir):
+                os.makedirs(folder_dl_dir)
+        
+            dl_path = os.path.join(folder_dl_dir,
                                    makeValidFilename(str(file.display_name)))
 
             # Download file if it doesn't already exist
@@ -253,13 +277,14 @@ def download_submission_attachments(course, course_view):
 
     for assignment in course_view.assignments:
         for submission in assignment.submissions:
-            attachment_dir = os.path.join(course_dir, assignment.title,
-                                          str(submission.user_id))
-            if not os.path.exists(attachment_dir):
+            attachment_dir = os.path.join(course_dir, "assignments", assignment.title)
+            if(len(assignment.submissions)!=1):
+                attachment_dir = os.path.join(attachment_dir,str(submission.user_id))
+            if (not os.path.exists(attachment_dir)) and (submission.attachments):
                 os.makedirs(attachment_dir)
             for attachment in submission.attachments:
-                filepath = os.path.join(attachment_dir, str(attachment.id) +
-                                        "_" + attachment.filename)
+                filepath = os.path.join(attachment_dir, makeValidFilename(str(attachment.id) +
+                                        "_" + attachment.filename))
                 if not os.path.exists(filepath):
                     print('Downloading attachment: {}'.format(filepath))
                     r = requests.get(attachment.url, allow_redirects=True)
@@ -337,7 +362,7 @@ def findCourseAssignments(course):
 
             # Title
             if hasattr(assignment, "name"):
-                assignment_view.title = str(assignment.name)
+                assignment_view.title = makeValidFilename(str(assignment.name))
             else:
                 assignment_view.title = ""
             # Description
@@ -356,12 +381,20 @@ def findCourseAssignments(course):
             else:
                 assignment_view.due_date = ""
 
-            # Download all submissions
             try:
-                submissions = assignment.get_submissions()
-            # TODO : Figure out the exact error raised
-            except:
-                print("Got no submissions for this assignment")
+                try: # Download all submissions for entire class
+                    submissions = assignment.get_submissions()
+                    submissions[0] # Trigger Unauthorized if not allowed
+                except Unauthorized:
+                    print("Not authorized to download entire class submissions for this assignment")
+                    # Download submission for this user only
+                    submissions = [assignment.get_submission(USER_ID)]
+                submissions[0] #throw error if no submissions found at all but without error
+            except (ResourceDoesNotExist, NameError, IndexError):
+                print('Got no submissions from either class or user: {}'.format(USER_ID))
+            except Exception as e:
+                print("Failed to retrieve submissions for this assignment")
+                print(e.__class__.__name__)
             else:
                 try:
                     for submission in submissions:
@@ -409,25 +442,6 @@ def findCourseAssignments(course):
                 except Exception as e:
                     print("Skipping submission that gave the following error:")
                     print(e)
-
-            # The following is only useful if you are a student in the class.
-            # Get my user"s submission object
-            try:
-                submission = assignment.get_submission(USER_ID)
-            except ResourceDoesNotExist:
-                print('No submission for user: {}'.format(USER_ID))
-            else:
-                # Create a new submission view
-                assignment_view.submission = submissionView()
-
-                # My grade
-                assignment_view.submission.grade = str(submission.grade) if hasattr(submission, "grade") else ""
-                # My raw score
-                assignment_view.submission.raw_score = str(submission.score) if hasattr(submission, "score") else ""
-                # Total possible score
-                assignment_view.submission.total_possible_points = str(assignment.points_possible) if hasattr(assignment, "points_possible") else ""
-                # Submission comments
-                assignment_view.submission.submission_comments = str(submission.submission_comments) if hasattr(submission, "submission_comments") else ""
 
             assignment_views.append(assignment_view)
     except Exception as e:
@@ -534,10 +548,10 @@ def getCourseView(course):
     course_view = courseView()
 
     # Course term
-    course_view.term = course.term["name"] if hasattr(course, "term") and "name" in course.term.keys() else ""
+    course_view.term = makeValidFilename(course.term["name"] if hasattr(course, "term") and "name" in course.term.keys() else "")
 
     # Course code
-    course_view.course_code = course.course_code if hasattr(course, "course_code") else ""
+    course_view.course_code = makeValidFilename(course.course_code if hasattr(course, "course_code") else "")
 
     # Course name
     course_view.name = course.name if hasattr(course, "name") else ""

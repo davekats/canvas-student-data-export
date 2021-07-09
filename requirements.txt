@@ -2,3 +2,4 @@ requests
 jsonpickle
 canvasapi
 python-dateutil
+PyYAML

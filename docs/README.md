@@ -14,11 +14,11 @@ The tool will export your data in JSON format, and will organize it nicely into 
 Example:
 - Fall 2013
   - Econ 101
-    - files
+    - course files
     - modules
     - Econ 101.json
   - English 101
-    - files
+    - course files
     - modules
     - English 101.json
 - Fall 2014
@@ -35,12 +35,14 @@ Example:
 - all_output.json
 
 # Getting Started
+
 ## Dependencies
 To run the program, you will need the following dependencies:  
 `pip install requests`  
 `pip install jsonpickle`  
-`pip install canvasapi` 
-`pip install python-dateutil`
+`pip install canvasapi`  
+`pip install python-dateutil`  
+`pip install PyYAML`
 
 You can install these dependencies using
 `pip install -r requirements.txt`
