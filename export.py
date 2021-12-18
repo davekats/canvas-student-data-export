@@ -14,7 +14,7 @@ import yaml
 
 try:
     with open("credentials.yaml", 'r') as f:
-        credentials = yaml.load(f)
+        credentials = yaml.full_load(f)
 except OSError:
     # Canvas API URL
     API_URL = ""
