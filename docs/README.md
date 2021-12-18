@@ -44,8 +44,11 @@ To run the program, you will need the following dependencies:
 `pip install python-dateutil`  
 `pip install PyYAML`
 
+`npm i github:gildas-lormeau/SingleFile`
+
 You can install these dependencies using
-`pip install -r requirements.txt`
+`pip install -r requirements.txt` AND
+`npm i`
 
 Then run from the command line:
 `python export.py`

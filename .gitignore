@@ -1,3 +1,4 @@
 .vscode
 output/
+node_modules/
 credentials.yaml
