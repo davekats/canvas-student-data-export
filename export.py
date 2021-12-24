@@ -695,6 +695,63 @@ def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
     # Downloads the course home page.
     download_page(api_url + "/courses/" + str(course_view.course_id), cookies_path, dl_dir, "homepage.html")
 
+def downloadAssignmentPages(api_url, course_view, cookies_path):
+    if(cookies_path == "" or len(course_view.assignments) == 0):
+        return
+
+    base_assign_dir = os.path.join(DL_LOCATION, course_view.term,
+        course_view.course_code, "assignments")
+
+    # Create directory if not present
+    if not os.path.exists(base_assign_dir):
+        os.makedirs(base_assign_dir)
+
+    # Download assignment list (theres a chance this might be the course homepage if the course has the assignments page disabled)
+    download_page(api_url + "/courses/" + str(course_view.course_id) + "/assignments/", cookies_path, base_assign_dir, "assignment_list.html")
+
+    for assignment in course_view.assignments:     
+        assign_dir = os.path.join(base_assign_dir, makeValidFolderPath(assignment.title))
+
+        # Download an html image of each assignment (includes assignment instructions and other stuff). 
+        # Currently, this will only download the main assignment page and not external pages, this is
+        # because these external pages are given in a json format. Saving these would require a lot
+        # more work then normal.
+        if assignment.html_url != "":
+            if not os.path.exists(assign_dir):
+                os.makedirs(assign_dir)
+
+            # Download assignment page, this usually has instructions and etc.
+            download_page(assignment.html_url, cookies_path, assign_dir, "assignment.html")
+
+        for submission in assignment.submissions:
+            submission_dir = assign_dir
+
+            # If theres more then 1 submission, add unique id to download dir
+            if len(assignment.submissions) != 1:
+                submission_dir = os.path.join(assign_dir, str(submission.user_id))
+
+            if submission.preview_url != "":
+                if not os.path.exists(submission_dir):
+                    os.makedirs(submission_dir)
+
+                # Download submission url, this is typically a more focused page
+                download_page(submission.preview_url, cookies_path, submission_dir, "submission.html")    
+
+            # If theres more then 1 attempt, save each attempt in attempts folder
+            if (submission.attempt != 1 and assignment.updated_url != "" and assignment.html_url != "" 
+                and assignment.html_url.rstrip("/") != assignment.updated_url.rstrip("/")):
+                submission_dir = os.path.join(assign_dir, "attempts")
+                
+                if not os.path.exists(submission_dir):
+                    os.makedirs(submission_dir)
+
+                # Saves the attempts if multiple were taken, doesn't account for
+                # different ID's however, as I wasnt able to find out what the url 
+                # for the specific id's attempts would be. 
+                for i in range(submission.attempt):
+                    download_page(assignment.updated_url + "/history?version=" + str(i+1), cookies_path, submission_dir, "attempt_" + str(i+1) + ".html")
+
+
 if __name__ == "__main__":
 
     print("Welcome to the Canvas Student Data Export Tool\n")
@@ -766,6 +823,9 @@ if __name__ == "__main__":
 
             print("  Downloading course home page")
             downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
+
+            print("  Downloading assignment pages")
+            downloadAssignmentPages(API_URL, course_view, COOKIES_PATH)
 
         print("  Exporting all course data")
         exportAllCourseData(course_view)
