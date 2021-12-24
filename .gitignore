@@ -1,4 +1,6 @@
 .vscode
 output/
 node_modules/
+
 credentials.yaml
+cookies.txt
