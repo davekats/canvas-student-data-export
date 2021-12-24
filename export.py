@@ -177,6 +177,9 @@ def makeValidFilename(input_str):
     # Remove leading and trailing whitespace
     input_str = input_str.lstrip().rstrip()
 
+    # Remove trailing periods
+    input_str = input_str.rstrip(".")
+
     ##Splits strings to prevent extremely long names
     #input_str=input_str[:40]
 
@@ -191,6 +194,9 @@ def makeValidFolderPath(input_str):
 
     # Remove leading and trailing whitespace, separators
     input_str = input_str.lstrip().rstrip().strip("/").strip("\\")
+
+    # Remove trailing periods
+    input_str = input_str.rstrip(".")
 
     # Replace path separators with OS default
     input_str=input_str.replace("/",os.sep)
@@ -246,7 +252,7 @@ def findCourseModules(course, course_view):
                     if module_item_view.content_type == "File":
                         # If problems arise due to long pathnames, changing module.name to module.id might help
                         # A change would also have to be made in downloadCourseModulePages(api_url, course_view, cookies_path)
-                        module_dir = os.path.join(modules_dir, makeValidFolderPath(str(module.id)), "files") 
+                        module_dir = os.path.join(modules_dir, makeValidFilename(str(module.id)), "files") 
 
                         try:
                             # Create directory for current module if not present
@@ -295,7 +301,7 @@ def downloadCourseFiles(course, course_view):
         for file in files:
             file_folder=course.get_folder(file.folder_id)
             
-            folder_dl_dir=os.path.join(dl_dir, makeValidFolderPath(file_folder.full_name))
+            folder_dl_dir=os.path.join(dl_dir, makeValidFilename(file_folder.full_name))
             
             if not os.path.exists(folder_dl_dir):
                 os.makedirs(folder_dl_dir)
@@ -689,7 +695,7 @@ def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
 
     # file full_name starts with "course files"
     dl_dir = os.path.join(DL_LOCATION, course_view.term,
-        course_view.course_code)
+                         course_view.course_code)
 
     # Create directory if not present
     if not os.path.exists(dl_dir):
@@ -719,7 +725,7 @@ def downloadAssignmentPages(api_url, course_view, cookies_path):
         download_page(api_url + "/courses/" + str(course_view.course_id) + "/assignments/", cookies_path, base_assign_dir, "assignment_list.html")
 
     for assignment in course_view.assignments:     
-        assign_dir = os.path.join(base_assign_dir, makeValidFolderPath(assignment.title))
+        assign_dir = os.path.join(base_assign_dir, makeValidFilename(assignment.title))
 
         # Download an html image of each assignment (includes assignment instructions and other stuff). 
         # Currently, this will only download the main assignment page and not external pages, this is
@@ -768,7 +774,7 @@ def downloadAssignmentPages(api_url, course_view, cookies_path):
                     submission_page_attempt_dir = os.path.join(submission_dir, filename)
 
                     if not os.path.exists(submission_page_attempt_dir):
-                        download_page(assignment.updated_url + "/history?version=" + str(i+1), cookies_path, filename)
+                        download_page(assignment.updated_url + "/history?version=" + str(i+1), cookies_path, submission_dir, filename)
 
 def downloadCourseModulePages(api_url, course_view, cookies_path): 
     if(cookies_path == "" or len(course_view.modules) == 0):
@@ -791,7 +797,7 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
         for item in module.items:
             # If problems arise due to long pathnames, changing module.title to module.id might help, this can also be done with item.title
             # A change would also have to be made in findCourseModules(course, course_view)
-            items_dir = os.path.join(modules_dir, makeValidFolderPath(str(module.id)))
+            items_dir = os.path.join(modules_dir, makeValidFilename(str(module.id)))
             
             # Create modules directory if not present
             if item.url != "":
@@ -823,7 +829,7 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
         download_page(api_url + "/courses/" + str(course_view.course_id) + "/announcements/", cookies_path, base_announce_dir, "announcement_list.html")
 
     for announcements in course_view.announcements:
-        announce_dir = os.path.join(base_announce_dir, makeValidFolderPath(announcements.title))
+        announce_dir = os.path.join(base_announce_dir, makeValidFilename(announcements.title))
 
         if announcements.url == "":
             continue
@@ -857,7 +863,7 @@ def downloadCourseDicussionPages(api_url, course_view, cookies_path):
         download_page(api_url + "/courses/" + str(course_view.course_id) + "/discussion_topics/", cookies_path, base_discussion_dir, "discussion_list.html")
 
     for discussion in course_view.discussions:
-        dicussion_dir = os.path.join(base_discussion_dir, makeValidFolderPath(discussion.title))
+        dicussion_dir = os.path.join(base_discussion_dir, makeValidFilename(discussion.title))
 
         if discussion.url == "":
             continue
@@ -920,6 +926,7 @@ if __name__ == "__main__":
     courses = canvas.get_courses(include="term")
 
     skip = set(COURSES_TO_SKIP)
+
 
     if (COOKIES_PATH):
         print("  Downloading course list page")
