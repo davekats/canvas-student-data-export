@@ -7,6 +7,8 @@ import string
 from canvasapi import Canvas
 from canvasapi.exceptions import ResourceDoesNotExist, Unauthorized
 
+from singlefile import download_page
+
 import dateutil.parser
 import jsonpickle
 import requests
@@ -197,6 +199,7 @@ def makeValidFolderPath(input_str):
     #input_str=input_str[:40]
 
     return input_str
+
 
 def findCourseModules(course, course_view):
     modules_dir = os.path.join(DL_LOCATION, course_view.term,
@@ -665,6 +668,18 @@ def exportAllCourseData(course_view):
     with open(course_output_path, "w") as out_file:
         out_file.write(json_str)
 
+def downloadCourseHTML(api_url, cookies_path):
+    if(cookies_path == ""):
+        return
+
+    course_dir = DL_LOCATION
+
+    if not os.path.exists(course_dir):
+        os.makedirs(course_dir)
+
+    # Downloads the course list.
+    download_page(api_url + "/courses/", cookies_path, course_dir, "course_list.html")
+
 
 if __name__ == "__main__":
 
@@ -730,6 +745,11 @@ if __name__ == "__main__":
 
         print("  Getting modules and downloading module files")
         course_view.modules = findCourseModules(course, course_view)
+
+        if(COOKIES_PATH):
+            print("  Downloading course list page")
+            downloadCourseHTML(API_URL, COOKIES_PATH)
+
 
         print("  Exporting all course data")
         exportAllCourseData(course_view)
