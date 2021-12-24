@@ -677,8 +677,11 @@ def downloadCourseHTML(api_url, cookies_path):
     if not os.path.exists(course_dir):
         os.makedirs(course_dir)
 
+    course_list_path = os.path.join(course_dir, "course_list.html")
+
     # Downloads the course list.
-    download_page(api_url + "/courses/", cookies_path, course_dir, "course_list.html")
+    if not os.path.exists(course_list_path):
+        download_page(api_url + "/courses/", cookies_path, course_dir, "course_list.html")
 
 def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
     if(cookies_path == ""):
@@ -692,8 +695,11 @@ def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
     if not os.path.exists(dl_dir):
         os.makedirs(dl_dir)
 
+    homepage_path = os.path.join(dl_dir, "homepage.html")
+
     # Downloads the course home page.
-    download_page(api_url + "/courses/" + str(course_view.course_id), cookies_path, dl_dir, "homepage.html")
+    if not os.path.exists(homepage_path):
+        download_page(api_url + "/courses/" + str(course_view.course_id), cookies_path, dl_dir, "homepage.html")
 
 def downloadAssignmentPages(api_url, course_view, cookies_path):
     if(cookies_path == "" or len(course_view.assignments) == 0):
@@ -706,8 +712,11 @@ def downloadAssignmentPages(api_url, course_view, cookies_path):
     if not os.path.exists(base_assign_dir):
         os.makedirs(base_assign_dir)
 
+    assignment_list_path = os.path.join(base_assign_dir, "assignment_list.html")
+
     # Download assignment list (theres a chance this might be the course homepage if the course has the assignments page disabled)
-    download_page(api_url + "/courses/" + str(course_view.course_id) + "/assignments/", cookies_path, base_assign_dir, "assignment_list.html")
+    if not os.path.exists(assignment_list_path):
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/assignments/", cookies_path, base_assign_dir, "assignment_list.html")
 
     for assignment in course_view.assignments:     
         assign_dir = os.path.join(base_assign_dir, makeValidFolderPath(assignment.title))
@@ -720,8 +729,11 @@ def downloadAssignmentPages(api_url, course_view, cookies_path):
             if not os.path.exists(assign_dir):
                 os.makedirs(assign_dir)
 
+            assignment_page_path = os.path.join(assign_dir, "assignment.html")
+
             # Download assignment page, this usually has instructions and etc.
-            download_page(assignment.html_url, cookies_path, assign_dir, "assignment.html")
+            if not os.path.exists(assignment_page_path):
+                download_page(assignment.html_url, cookies_path, assign_dir, "assignment.html")
 
         for submission in assignment.submissions:
             submission_dir = assign_dir
@@ -734,8 +746,11 @@ def downloadAssignmentPages(api_url, course_view, cookies_path):
                 if not os.path.exists(submission_dir):
                     os.makedirs(submission_dir)
 
+                submission_page_dir = os.path.join(submission_dir, "submission.html")
+
                 # Download submission url, this is typically a more focused page
-                download_page(submission.preview_url, cookies_path, submission_dir, "submission.html")    
+                if not os.path.exists(submission_page_dir):
+                    download_page(submission.preview_url, cookies_path, submission_dir, "submission.html")    
 
             # If theres more then 1 attempt, save each attempt in attempts folder
             if (submission.attempt != 1 and assignment.updated_url != "" and assignment.html_url != "" 
@@ -749,7 +764,11 @@ def downloadAssignmentPages(api_url, course_view, cookies_path):
                 # different ID's however, as I wasnt able to find out what the url 
                 # for the specific id's attempts would be. 
                 for i in range(submission.attempt):
-                    download_page(assignment.updated_url + "/history?version=" + str(i+1), cookies_path, submission_dir, "attempt_" + str(i+1) + ".html")
+                    filename = "attempt_" + str(i+1) + ".html"
+                    submission_page_attempt_dir = os.path.join(submission_dir, filename)
+
+                    if not os.path.exists(submission_page_attempt_dir):
+                        download_page(assignment.updated_url + "/history?version=" + str(i+1), cookies_path, filename)
 
 def downloadCourseModulePages(api_url, course_view, cookies_path): 
     if(cookies_path == "" or len(course_view.modules) == 0):
@@ -762,8 +781,11 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
     if not os.path.exists(modules_dir):
         os.makedirs(modules_dir)
 
+    module_list_dir = os.path.join(modules_dir, "modules_list.html")
+
     # Downloads the modules page (possible this is disabled by the teacher)
-    download_page(api_url + "/courses/" + str(course_view.course_id) + "/modules/", COOKIES_PATH, modules_dir, "modules_list.html")
+    if not os.path.exists(module_list_dir):
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/modules/", COOKIES_PATH, modules_dir, "modules_list.html")
 
     for module in course_view.modules:
         for item in module.items:
@@ -776,8 +798,12 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
                 if not os.path.exists(items_dir):
                     os.makedirs(items_dir)
 
+                filename = makeValidFilename(str(item.title)) + ".html"
+                module_item_dir = os.path.join(items_dir, filename)
+
                 # Download the module page.
-                download_page(item.url, cookies_path, items_dir, makeValidFilename(str(item.title)) + ".html")
+                if not os.path.exists(module_item_dir):
+                    download_page(item.url, cookies_path, items_dir, filename)
 
 def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
     if(cookies_path == "" or len(course_view.announcements) == 0):
@@ -790,8 +816,11 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
     if not os.path.exists(base_announce_dir):
         os.makedirs(base_announce_dir)
 
+    announcement_list_dir = os.path.join(base_announce_dir, "announcement_list.html")
+    
     # Download assignment list (theres a chance this might be the course homepage if the course has the assignments page disabled)
-    download_page(api_url + "/courses/" + str(course_view.course_id) + "/announcements/", cookies_path, base_announce_dir, "announcement_list.html")
+    if not os.path.exists(announcement_list_dir):
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/announcements/", cookies_path, base_announce_dir, "announcement_list.html")
 
     for announcements in course_view.announcements:
         announce_dir = os.path.join(base_announce_dir, makeValidFolderPath(announcements.title))
@@ -803,8 +832,12 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
             os.makedirs(announce_dir)
 
         for i in range(announcements.amount_pages):
+            filename = "announcement_" + str(i+1) + ".html"
+            announcement_page_dir = os.path.join(announce_dir, filename)
+
             # Download assignment page, this usually has instructions and etc.
-            download_page(announcements.url + "/page-" + str(i+1), cookies_path, announce_dir, "announcement_" + str(i+1) + ".html")
+            if not os.path.exists(announcement_page_dir):
+                download_page(announcements.url + "/page-" + str(i+1), cookies_path, announce_dir, filename)
         
 def downloadCourseDicussionPages(api_url, course_view, cookies_path):
     if(cookies_path == "" or len(course_view.discussions) == 0):
@@ -817,8 +850,11 @@ def downloadCourseDicussionPages(api_url, course_view, cookies_path):
     if not os.path.exists(base_discussion_dir):
         os.makedirs(base_discussion_dir)
 
+    dicussion_list_dir = os.path.join(base_discussion_dir, "discussion_list.html")
+
     # Download assignment list (theres a chance this might be the course homepage if the course has the assignments page disabled)
-    download_page(api_url + "/courses/" + str(course_view.course_id) + "/discussion_topics/", cookies_path, base_discussion_dir, "discussion_list.html")
+    if not os.path.exists(dicussion_list_dir):
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/discussion_topics/", cookies_path, base_discussion_dir, "discussion_list.html")
 
     for discussion in course_view.discussions:
         dicussion_dir = os.path.join(base_discussion_dir, makeValidFolderPath(discussion.title))
@@ -830,8 +866,12 @@ def downloadCourseDicussionPages(api_url, course_view, cookies_path):
             os.makedirs(dicussion_dir)
 
         for i in range(discussion.amount_pages):
+            filename = "dicussion_" + str(i+1) + ".html"
+            dicussion_page_dir = os.path.join(dicussion_dir, filename)
+            
             # Download assignment page, this usually has instructions and etc.
-            download_page(discussion.url + "/page-" + str(i+1), cookies_path, dicussion_dir, "dicussion_" + str(i+1) + ".html")
+            if not os.path.exists(dicussion_page_dir):
+                download_page(discussion.url + "/page-" + str(i+1), cookies_path, dicussion_dir, filename)
 
 if __name__ == "__main__":
 
@@ -881,6 +921,10 @@ if __name__ == "__main__":
 
     skip = set(COURSES_TO_SKIP)
 
+    if (COOKIES_PATH):
+        print("  Downloading course list page")
+        downloadCourseHTML(API_URL, COOKIES_PATH)
+
     for course in courses:
         if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
             continue
@@ -899,9 +943,6 @@ if __name__ == "__main__":
         course_view.modules = findCourseModules(course, course_view)
 
         if(COOKIES_PATH):
-            print("  Downloading course list page")
-            downloadCourseHTML(API_URL, COOKIES_PATH)
-
             print("  Downloading course home page")
             downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
 
@@ -916,7 +957,6 @@ if __name__ == "__main__":
 
             print("  Downloading course dicussion pages")
             downloadCourseDicussionPages(API_URL, course_view, COOKIES_PATH)
-
 
         print("  Exporting all course data")
         exportAllCourseData(course_view)
