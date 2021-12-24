@@ -680,6 +680,20 @@ def downloadCourseHTML(api_url, cookies_path):
     # Downloads the course list.
     download_page(api_url + "/courses/", cookies_path, course_dir, "course_list.html")
 
+def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
+    if(cookies_path == ""):
+        return
+
+    # file full_name starts with "course files"
+    dl_dir = os.path.join(DL_LOCATION, course_view.term,
+        course_view.course_code)
+
+    # Create directory if not present
+    if not os.path.exists(dl_dir):
+        os.makedirs(dl_dir)
+
+    # Downloads the course home page.
+    download_page(api_url + "/courses/" + str(course_view.course_id), cookies_path, dl_dir, "homepage.html")
 
 if __name__ == "__main__":
 
@@ -730,7 +744,7 @@ if __name__ == "__main__":
     skip = set(COURSES_TO_SKIP)
 
     for course in courses:
-        if course.id in skip:
+        if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
             continue
 
         course_view = getCourseView(course)
@@ -750,6 +764,8 @@ if __name__ == "__main__":
             print("  Downloading course list page")
             downloadCourseHTML(API_URL, COOKIES_PATH)
 
+            print("  Downloading course home page")
+            downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
 
         print("  Exporting all course data")
         exportAllCourseData(course_view)
