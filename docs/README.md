@@ -68,6 +68,7 @@ To avoid manually entering credentials every time you run the program, you can c
 API_URL: < URL of your institution >
 API_KEY: < API Key from Canvas >
 USER_ID: < User ID from Canvas >
+COOKIES_PATH: < Path to cookies file >
 ```
 
 You can then run the script as normal:
