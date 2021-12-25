@@ -252,7 +252,7 @@ def findCourseModules(course, course_view):
                     if module_item_view.content_type == "File":
                         # If problems arise due to long pathnames, changing module.name to module.id might help
                         # A change would also have to be made in downloadCourseModulePages(api_url, course_view, cookies_path)
-                        module_dir = os.path.join(modules_dir, makeValidFilename(str(module.id)), "files") 
+                        module_dir = os.path.join(modules_dir, makeValidFilename(str(module.name)), "files") 
 
                         try:
                             # Create directory for current module if not present
@@ -693,7 +693,6 @@ def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
     if(cookies_path == ""):
         return
 
-    # file full_name starts with "course files"
     dl_dir = os.path.join(DL_LOCATION, course_view.term,
                          course_view.course_code)
 
@@ -795,9 +794,9 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
 
     for module in course_view.modules:
         for item in module.items:
-            # If problems arise due to long pathnames, changing module.title to module.id might help, this can also be done with item.title
+            # If problems arise due to long pathnames, changing module.name to module.id might help, this can also be done with item.title
             # A change would also have to be made in findCourseModules(course, course_view)
-            items_dir = os.path.join(modules_dir, makeValidFilename(str(module.id)))
+            items_dir = os.path.join(modules_dir, makeValidFilename(str(module.name)))
             
             # Create modules directory if not present
             if item.url != "":
@@ -837,6 +836,7 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
         if not os.path.exists(announce_dir):
             os.makedirs(announce_dir)
 
+        # Downloads each page that a discussion takes.
         for i in range(announcements.amount_pages):
             filename = "announcement_" + str(i+1) + ".html"
             announcement_page_dir = os.path.join(announce_dir, filename)
@@ -871,6 +871,7 @@ def downloadCourseDicussionPages(api_url, course_view, cookies_path):
         if not os.path.exists(dicussion_dir):
             os.makedirs(dicussion_dir)
 
+        # Downloads each page that a discussion takes.
         for i in range(discussion.amount_pages):
             filename = "dicussion_" + str(i+1) + ".html"
             dicussion_page_dir = os.path.join(dicussion_dir, filename)
