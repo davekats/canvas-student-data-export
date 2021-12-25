@@ -9,6 +9,8 @@ The tool exports all of the following data:
 - Course Pages
 - Course Files
 - Course Modules
+- SingleFile HTML of Assignments, Announcements, Discussions, Modules
+
 
 The tool will export your data in JSON format, and will organize it nicely into folders named for every term of every year.
 Example:
@@ -47,7 +49,8 @@ To run the program, you will need the following dependencies:
 `npm i github:gildas-lormeau/SingleFile`
 
 You can install these dependencies using
-`pip install -r requirements.txt` AND
+`pip install -r requirements.txt` 
+AND
 `npm i`
 
 Then run from the command line:
@@ -58,8 +61,11 @@ These are the configuration parameters for the program:
 - Canvas API URL - this is the URL of your institution, for example `https://example.instructure.com`
 - Canvas API key - this can be created by going to Canvas and navigating to `Account` > `Settings` > `Approved Integrations` > `New Access Token`
 - Canvas User ID - this can be found at `https://example.instructure.com/api/v1/users/self` in the `id` field
+- Path to Cookies File - file needs to be in netscape format, you can get your cookies via a tool like "Get Cookies.txt" by Rahul Shaw. This can also be left blank if an html images are unwanted.
 - Directory in which to download course information to (will be created if not present)
 - List of Course IDs that should be skipped
+
+If single file fails to find your browser, you can set a path in singlefile.py. If you also want to run additional singlefile arguments that can also be done there.
 
 ### Loading credentials from a file
 To avoid manually entering credentials every time you run the program, you can create a `credentials.yaml` file in the same directory as the script that has the following fields:
