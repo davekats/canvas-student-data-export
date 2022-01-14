@@ -301,7 +301,7 @@ def downloadCourseFiles(course, course_view):
         for file in files:
             file_folder=course.get_folder(file.folder_id)
             
-            folder_dl_dir=os.path.join(dl_dir, makeValidFilename(file_folder.full_name))
+            folder_dl_dir=os.path.join(dl_dir, makeValidFolderPath(file_folder.full_name))
             
             if not os.path.exists(folder_dl_dir):
                 os.makedirs(folder_dl_dir)
