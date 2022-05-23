@@ -5,3 +5,4 @@ output/
 
 credentials.yaml
 cookies.txt
+package-lock.json
