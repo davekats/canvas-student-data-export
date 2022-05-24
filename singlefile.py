@@ -12,7 +12,7 @@ def download_page(url, cookies_path, output_path, output_name_template = ""):
         #"--browser-executable-path=" + addQuotes(CHROME_PATH.strip("\"")), #Uncomment this and set your browser exe if it can't find yours.
         "--browser-cookies-file=" + addQuotes(cookies_path),
         "--output-directory=" + addQuotes(output_path),
-        url
+        addQuotes(url)
         ]
 
     if(output_name_template != ""):
