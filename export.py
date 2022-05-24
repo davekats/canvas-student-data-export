@@ -473,7 +473,7 @@ def findCourseAssignments(course):
                             hasattr(submission, "submission_comments") else ""
                         # Attempt
                         sub_view.attempt = submission.attempt if \
-                            hasattr(submission, "attempt") else 0
+                            hasattr(submission, "attempt") and submission.attempt is not None else 0
                         # User ID
                         sub_view.user_id = str(submission.user_id) if \
                             hasattr(submission, "user_id") else ""
