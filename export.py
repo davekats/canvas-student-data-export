@@ -865,7 +865,7 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
             if not os.path.exists(announcement_page_dir):
                 download_page(announcements.url + "/page-" + str(i+1), cookies_path, announce_dir, filename)
         
-def downloadCourseDicussionPages(api_url, course_view, cookies_path):
+def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
     if(cookies_path == "" or len(course_view.discussions) == 0):
         return
 
@@ -876,31 +876,31 @@ def downloadCourseDicussionPages(api_url, course_view, cookies_path):
     if not os.path.exists(base_discussion_dir):
         os.makedirs(base_discussion_dir)
 
-    dicussion_list_dir = os.path.join(base_discussion_dir, "discussion_list.html")
+    discussion_list_dir = os.path.join(base_discussion_dir, "discussion_list.html")
 
     # Download assignment list (theres a chance this might be the course homepage if the course has the assignments page disabled)
-    if not os.path.exists(dicussion_list_dir):
+    if not os.path.exists(discussion_list_dir):
         download_page(api_url + "/courses/" + str(course_view.course_id) + "/discussion_topics/", cookies_path, base_discussion_dir, "discussion_list.html")
 
     for discussion in course_view.discussions:
         discussion_title = makeValidFilename(str(discussion.title))
         discussion_title = shortenFileName(discussion_title, len(discussion_title) - MAX_FOLDER_NAME_SIZE)
-        dicussion_dir = os.path.join(base_discussion_dir, discussion_title)
+        discussion_dir = os.path.join(base_discussion_dir, discussion_title)
 
         if discussion.url == "":
             continue
 
-        if not os.path.exists(dicussion_dir):
-            os.makedirs(dicussion_dir)
+        if not os.path.exists(discussion_dir):
+            os.makedirs(discussion_dir)
 
         # Downloads each page that a discussion takes.
         for i in range(discussion.amount_pages):
-            filename = "dicussion_" + str(i+1) + ".html"
-            dicussion_page_dir = os.path.join(dicussion_dir, filename)
+            filename = "discussion_" + str(i+1) + ".html"
+            discussion_page_dir = os.path.join(discussion_dir, filename)
             
             # Download assignment page, this usually has instructions and etc.
-            if not os.path.exists(dicussion_page_dir):
-                download_page(discussion.url + "/page-" + str(i+1), cookies_path, dicussion_dir, filename)
+            if not os.path.exists(discussion_page_dir):
+                download_page(discussion.url + "/page-" + str(i+1), cookies_path, discussion_dir, filename)
 
 if __name__ == "__main__":
 
@@ -985,8 +985,8 @@ if __name__ == "__main__":
             print("  Downloading course announcements pages")
             downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)   
 
-            print("  Downloading course dicussion pages")
-            downloadCourseDicussionPages(API_URL, course_view, COOKIES_PATH)
+            print("  Downloading course discussion pages")
+            downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
 
         print("  Exporting all course data")
         exportAllCourseData(course_view)
