@@ -61,7 +61,7 @@ These are the configuration parameters for the program:
 - Canvas API URL - this is the URL of your institution, for example `https://example.instructure.com`
 - Canvas API key - this can be created by going to Canvas and navigating to `Account` > `Settings` > `Approved Integrations` > `New Access Token`
 - Canvas User ID - this can be found at `https://example.instructure.com/api/v1/users/self` in the `id` field
-- Path to Cookies File - file needs to be in netscape format, you can get your cookies via a tool like "Get Cookies.txt" by Rahul Shaw. This can also be left blank if an html images are unwanted.
+- Path to Cookies File - file needs to be in netscape format, you can get your cookies via a tool like "Get cookies.txt Clean" on chrome. This can also be left blank if an html images are unwanted.
 - Directory in which to download course information to (will be created if not present)
 - List of Course IDs that should be skipped
 
