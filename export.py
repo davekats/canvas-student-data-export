@@ -976,6 +976,11 @@ if __name__ == "__main__":
         if output_folder_entry.get() != "":
             DL_LOCATION = output_folder_entry.get()
 
+        #Remove widgets
+        for widget in root.winfo_children():
+            widget.destroy()
+
+
         print("API_URL", API_URL)
         print("API_KEY", API_KEY)
         print("USER_ID", USER_ID)
