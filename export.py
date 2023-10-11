@@ -5,6 +5,8 @@ import string
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
+from tkinter.ttk import Progressbar
+import threading
 
 # external
 from canvasapi import Canvas
@@ -920,6 +922,7 @@ def validate_entry():
     if not user_id:
         messagebox.showerror("Error", "User ID is required")  # Display an error message
         return False  # Validation failed
+    
     return True  # Validation passed
 
 def browse_folder():
@@ -931,7 +934,6 @@ if __name__ == "__main__":
     # Create a GUI window
     root = tk.Tk()
     root.title("Canvas Student Data Export Tool")
-    #validate_api_key_func = root.register(validate_keys)
 
     # Create and place GUI elements
     canvas_url_label = tk.Label(root, text="Canvas Base URL:")
@@ -959,10 +961,6 @@ if __name__ == "__main__":
     output_folder_entry = tk.Entry(root)
     output_folder_entry.pack()
 
-    print(DL_LOCATION)
-
-
-
     def export_data():
         print("Welcome to the Canvas Student Data Export Tool\n")
         global API_URL
@@ -970,45 +968,18 @@ if __name__ == "__main__":
         global USER_ID
         global COOKIES_PATH
         global DL_LOCATION
-        print(DL_LOCATION)
         
-        """
-        if API_URL == "":
-            # Canvas API URL
-            print("We will need your organization's Canvas Base URL. This is "
-                "probably something like https://{schoolName}.instructure.com)")
-            #API_URL = input("Enter your organization's Canvas Base URL: ")
-            API_URL = canvas_url_entry.get()
-
-        if API_KEY == "":
-            # Canvas API key
-            print("\nWe will need a valid API key for your user. You can generate "
-                "one in Canvas once you are logged in.")
-            #API_KEY = input("Enter a valid API key for your user: ")
-            API_KEY = api_key_entry.get()
-
-
-        if USER_ID == 0000000:
-            # My Canvas User ID
-            print("\nWe will need your Canvas User ID. You can find this by "
-                "logging in to canvas and then going to this URL in the same "
-                "browser {yourCanvasBaseUrl}/api/v1/users/self")
-            #USER_ID = input("Enter your Canvas User ID: ")
-            USER_ID = user_id_entry.get()
-        """
-
-        if COOKIES_PATH == "": 
-            # Cookies path
-            print("\nWe will need your browsers cookies file. This needs to be "
-                "exported using another tool. This needs to be a path to a file "
-                "formatted in the NetScape format. This can be left blank if an html "
-                "images aren't wanted. ")
-            #COOKIES_PATH = input("Enter your cookies path: ")
-            COOKIES_PATH = cookies_path_entry.get()
-
+        API_URL = canvas_url_entry.get()
+        API_KEY = api_key_entry.get()
+        USER_ID = user_id_entry.get()
+        COOKIES_PATH = cookies_path_entry.get()
         if output_folder_entry.get() != "":
             DL_LOCATION = output_folder_entry.get()
-        
+
+        print("API_URL", API_URL)
+        print("API_KEY", API_KEY)
+        print("USER_ID", USER_ID)
+        print("DL_LOCATION", DL_LOCATION)        
 
         print("\nConnecting to canvas\n")
 
@@ -1032,7 +1003,23 @@ if __name__ == "__main__":
             print("  Downloading course list page")
             downloadCourseHTML(API_URL, COOKIES_PATH)
 
+        total_courses = 0
+        #calculate how many total courses of Paginated List 
+        for course in courses: 
+            total_courses += 1
+
+        # Create a progress bar widget
+        progress_var = tk.DoubleVar()  # Variable to control the progress bar
+        progress_bar = Progressbar(root, mode="determinate", variable=progress_var)
+        progress_bar.pack()  # This is where the progress_var is used in the progress_bar
+
+        course_index = 0
         for course in courses:
+            # Simulate a progress bar update
+            progress_percentage = (course_index / total_courses * 100)
+            progress_var.set(progress_percentage)  # Update the progress bar value
+            root.update_idletasks()  # Update the GUI
+       
             if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
                 continue
 
@@ -1067,6 +1054,7 @@ if __name__ == "__main__":
 
             print("  Exporting all course data")
             exportAllCourseData(course_view)
+            course_index += 1
 
         print("Exporting data from all courses combined as one file: "
             "all_output.json")
@@ -1082,11 +1070,14 @@ if __name__ == "__main__":
             out_file.write(json_str)
 
         print("\nProcess complete. All canvas data exported!")
+        messagebox.showinfo("Success", "Data export completed!")  # Show a success message
+
 
     def export_button_click():
         # Keep prompting the user for input until all fields are filled correctly
         if (validate_entry()):
-            export_data()  # Proceed with exporting data once all fields are filled correctly
+            export_thread = threading.Thread(target=export_data)
+            export_thread.start()  # Proceed with exporting data in seperate thread once all fields are filled correctly
 
     browse_button = tk.Button(root, text="Browse", command=browse_folder)
     browse_button.pack()
