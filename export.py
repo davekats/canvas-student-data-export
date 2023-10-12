@@ -5,8 +5,10 @@ import string
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
+from tkinter import scrolledtext
 from tkinter.ttk import Progressbar
 import threading
+import sys
 
 # external
 from canvasapi import Canvas
@@ -907,23 +909,35 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
             if not os.path.exists(discussion_page_dir):
                 download_page(discussion.url + "/page-" + str(i+1), cookies_path, discussion_dir, filename)
 
-# Create a validation function to check if the entry is empty
+# Redirects stdout to Text widget
+class RedirectText:
+    def __init__(self, text_widget):
+        self.text_widget = text_widget
+
+    def write(self, text):
+        # Insert text into the text widget
+        self.text_widget.insert("end", text)
+        
+        # Write to console
+        sys.__stdout__.write(text)
+
+# Validation function to check if the required GUI entries are empty
 def validate_entry():
     canvas_url = canvas_url_entry.get()
     api_key = api_key_entry.get()
     user_id = user_id_entry.get()
 
     if not canvas_url:
-        messagebox.showerror("Error", "Canvas URL is required")  # Display an error message
-        return False  # Validation failed
+        messagebox.showerror("Error", "Canvas URL is required")
+        return False
     if not api_key:
-        messagebox.showerror("Error", "API Key is required")  # Display an error message
-        return False  # Validation failed
+        messagebox.showerror("Error", "API Key is required")
+        return False
     if not user_id:
-        messagebox.showerror("Error", "User ID is required")  # Display an error message
-        return False  # Validation failed
+        messagebox.showerror("Error", "User ID is required")
+        return False
     
-    return True  # Validation passed
+    return True
 
 def browse_folder():
     folder_path = filedialog.askdirectory()
@@ -935,8 +949,8 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.geometry("900x700")
     root.title("Canvas Student Data Export Tool")
-    font = ("Helvetica", 22)  # Define a larger font
-    label_font = ("Helvetica", 24, "bold")  # Define a larger and bold font for labels
+    font = ("Helvetica", 22)
+    label_font = ("Helvetica", 24, "bold")
 
     # Create and place GUI elements
     canvas_url_label = tk.Label(root, text="Canvas Base URL:", font=label_font)
@@ -965,7 +979,6 @@ if __name__ == "__main__":
     output_folder_entry.pack()
 
     def export_data():
-        print("Welcome to the Canvas Student Data Export Tool\n")
         global API_URL
         global API_KEY
         global USER_ID
@@ -979,15 +992,30 @@ if __name__ == "__main__":
         if output_folder_entry.get() != "":
             DL_LOCATION = output_folder_entry.get()
 
-        #Remove widgets
+        #Remove entry widgets
         for widget in root.winfo_children():
             widget.destroy()
 
+        # Create a progress bar widget based on course number
+        progress_label = tk.Label(root, text="Canvas Export Progress:", font=label_font)
+        progress_label.pack(pady = 20)
+        progress_var = tk.DoubleVar()
+        progress_bar = Progressbar(root, length=700, mode="determinate", variable=progress_var)
+        progress_bar.pack()
 
-        print("API_URL", API_URL)
-        print("API_KEY", API_KEY)
-        print("USER_ID", USER_ID)
-        print("DL_LOCATION", DL_LOCATION)        
+        # Text widget to display stdout print statements
+        console_text = scrolledtext.ScrolledText(root, wrap=tk.WORD)
+        console_text.pack(pady = 20)
+
+        # Redirect stdout to the text widget (Print statements will still show in console)
+        sys.stdout = RedirectText(console_text)
+
+        print("Welcome to the Canvas Student Data Export Tool\n")
+
+        print("API_URL:", API_URL)
+        print("API_KEY:", API_KEY)
+        print("USER_ID:", USER_ID)
+        print("DL_LOCATION:", DL_LOCATION)        
 
         print("\nConnecting to canvas\n")
 
@@ -1016,19 +1044,12 @@ if __name__ == "__main__":
         for course in courses: 
             total_courses += 1
 
-        # Create a progress bar widget
-        progress_label = tk.Label(root, text="Canvas Export Progress:", font=label_font)
-        progress_label.pack(pady = 20)
-        progress_var = tk.DoubleVar()  # Variable to control the progress bar
-        progress_bar = Progressbar(root, length=700, mode="determinate", variable=progress_var)
-        progress_bar.pack()  # This is where the progress_var is used in the progress_bar
-
         course_index = 0
         for course in courses:
             # Simulate a progress bar update
             progress_percentage = (course_index / total_courses * 100)
-            progress_var.set(progress_percentage)  # Update the progress bar value
-            root.update_idletasks()  # Update the GUI
+            progress_var.set(progress_percentage)
+            root.update_idletasks()
        
             if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
                 continue
@@ -1080,7 +1101,9 @@ if __name__ == "__main__":
             out_file.write(json_str)
 
         print("\nProcess complete. All canvas data exported!")
-        messagebox.showinfo("Success", "Data export completed!")  # Show a success message
+        messagebox.showinfo("Success", "Data export completed!")
+        completion_label = tk.Label(root, text="Canvas Export Complete!", font=label_font)
+        completion_label.pack(pady = 20)
 
 
     def export_button_click():
