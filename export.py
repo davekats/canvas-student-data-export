@@ -933,32 +933,35 @@ def browse_folder():
 if __name__ == "__main__":
     # Create a GUI window
     root = tk.Tk()
+    root.geometry("900x700")
     root.title("Canvas Student Data Export Tool")
+    font = ("Helvetica", 22)  # Define a larger font
+    label_font = ("Helvetica", 24, "bold")  # Define a larger and bold font for labels
 
     # Create and place GUI elements
-    canvas_url_label = tk.Label(root, text="Canvas Base URL:")
+    canvas_url_label = tk.Label(root, text="Canvas Base URL:", font=label_font)
     canvas_url_label.pack()
-    canvas_url_entry = tk.Entry(root)
+    canvas_url_entry = tk.Entry(root, font=font)
     canvas_url_entry.pack()
 
-    api_key_label = tk.Label(root, text="API Key:")
+    api_key_label = tk.Label(root, text="API Key:", font=label_font)
     api_key_label.pack()
-    api_key_entry = tk.Entry(root)
+    api_key_entry = tk.Entry(root, font=font)
     api_key_entry.pack()
 
-    user_id_label = tk.Label(root, text="Canvas User ID:")
+    user_id_label = tk.Label(root, text="Canvas User ID:", font=label_font)
     user_id_label.pack()
-    user_id_entry = tk.Entry(root)
+    user_id_entry = tk.Entry(root, font=font)
     user_id_entry.pack()
 
-    cookies_path_label = tk.Label(root, text="Cookies Path (optional):")
+    cookies_path_label = tk.Label(root, text="Cookies Path (optional):", font=label_font)
     cookies_path_label.pack()
-    cookies_path_entry = tk.Entry(root)
+    cookies_path_entry = tk.Entry(root, font=font)
     cookies_path_entry.pack()
 
-    output_folder_label = tk.Label(root, text="Output Folder:")
+    output_folder_label = tk.Label(root, text="Output Folder:", font=label_font)
     output_folder_label.pack()
-    output_folder_entry = tk.Entry(root)
+    output_folder_entry = tk.Entry(root, font=font)
     output_folder_entry.pack()
 
     def export_data():
@@ -1014,8 +1017,10 @@ if __name__ == "__main__":
             total_courses += 1
 
         # Create a progress bar widget
+        progress_label = tk.Label(root, text="Canvas Export Progress:", font=label_font)
+        progress_label.pack(pady = 20)
         progress_var = tk.DoubleVar()  # Variable to control the progress bar
-        progress_bar = Progressbar(root, mode="determinate", variable=progress_var)
+        progress_bar = Progressbar(root, length=700, mode="determinate", variable=progress_var)
         progress_bar.pack()  # This is where the progress_var is used in the progress_bar
 
         course_index = 0
@@ -1084,11 +1089,11 @@ if __name__ == "__main__":
             export_thread = threading.Thread(target=export_data)
             export_thread.start()  # Proceed with exporting data in seperate thread once all fields are filled correctly
 
-    browse_button = tk.Button(root, text="Browse", command=browse_folder)
-    browse_button.pack()
+    browse_button = tk.Button(root, text="Browse", font = font, command=browse_folder)
+    browse_button.pack(pady = 20)
 
-    export_button = tk.Button(root, text="Export Data", command=export_button_click)
-    export_button.pack()
+    export_button = tk.Button(root, text="Export Data", font = font, command=export_button_click)
+    export_button.pack(pady = 20)
 
 # Run the GUI main loop
 root.mainloop()
