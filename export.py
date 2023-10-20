@@ -21,6 +21,8 @@ import jsonpickle
 import requests
 import yaml
 
+import shutil
+
 try:
     with open("credentials.yaml", 'r') as f:
         credentials = yaml.full_load(f)
@@ -38,6 +40,20 @@ else:
     API_KEY = credentials["API_KEY"]
     USER_ID = credentials["USER_ID"]
     COOKIES_PATH = credentials["COOKIES_PATH"]
+
+def flag_file_if_needed(filepath):
+    """Check the file for specific criteria and flag (copy) if necessary."""
+    print(f"Checking file: {filepath}")
+   # In this case, we're looking for 'grade' in the filename.
+    if 'grade' in os.path.basename(filepath).lower():
+        flagged_dir = os.path.join(DL_LOCATION, "flagged_files")
+        
+        if not os.path.exists(flagged_dir):
+            os.makedirs(flagged_dir)
+            print(f"Created directory: {flagged_dir}")
+        
+        # copy the file to the flagged directory
+        shutil.copy2(filepath, flagged_dir)
 
 # Directory in which to download course information to (will be created if not
 # present)
@@ -339,6 +355,7 @@ def downloadCourseFiles(course, course_view):
             if not os.path.exists(dl_path):
                 print('Downloading: {}'.format(dl_path))
                 file.download(dl_path)
+                flag_file_if_needed(dl_path)
     except Exception as e:
         print("Skipping file download that gave the following error:")
         print(e)
@@ -708,6 +725,7 @@ def exportAllCourseData(course_view):
 
     with open(course_output_path, "w") as out_file:
         out_file.write(json_str)
+    flag_file_if_needed(course_output_path)
 
 
 def downloadCourseHTML(api_url, cookies_path):
@@ -724,6 +742,7 @@ def downloadCourseHTML(api_url, cookies_path):
     # Downloads the course list.
     if not os.path.exists(course_list_path):
         download_page(api_url + "/courses/", cookies_path, course_dir, "course_list.html")
+        flag_file_if_needed(course_list_path)
 
 
 def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
@@ -742,6 +761,7 @@ def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
     # Downloads the course home page.
     if not os.path.exists(homepage_path):
         download_page(api_url + "/courses/" + str(course_view.course_id), cookies_path, dl_dir, "homepage.html")
+        flag_file_if_needed(homepage_path)
 
 
 def downloadAssignmentPages(api_url, course_view, cookies_path):
@@ -855,6 +875,7 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
                 # Download the module page.
                 if not os.path.exists(module_item_dir):
                     download_page(item.url, cookies_path, items_dir, filename)
+                    flag_file_if_needed(flag_file_if_needed(download_page(item.url, cookies_path, items_dir, filename)))
 
 
 def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
@@ -893,8 +914,8 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
 
             # Download assignment page, this usually has instructions and etc.
             if not os.path.exists(announcement_page_dir):
-                download_page(announcements.url + "/page-" + str(i + 1), cookies_path, announce_dir, filename)
-
+                download_page(announcements.url + "/page-" + str(i+1), cookies_path, announce_dir, filename)
+                flag_file_if_needed(download_page)
 
 def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
     if (cookies_path == "" or len(course_view.discussions) == 0):
@@ -932,8 +953,8 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
 
             # Download assignment page, this usually has instructions and etc.
             if not os.path.exists(discussion_page_dir):
-                download_page(discussion.url + "/page-" + str(i + 1), cookies_path, discussion_dir, filename)
-
+                download_page(discussion.url + "/page-" + str(i+1), cookies_path, discussion_dir, filename)
+                flag_file_if_needed(download_page)
 
 # Function to load JSON data from a file
 def loadJsonFile(file_path):
