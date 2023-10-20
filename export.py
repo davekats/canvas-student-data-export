@@ -1057,7 +1057,7 @@ if __name__ == "__main__":
         console_text.pack(pady = 20)
 
         # Redirect stdout to the text widget (Print statements will still show in console)
-        sys.stdout = RedirectText(console_text)
+        # sys.stdout = RedirectText(console_text)
 
         print("Welcome to the Canvas Student Data Export Tool\n")
 
@@ -1084,10 +1084,6 @@ if __name__ == "__main__":
         skip = set(COURSES_TO_SKIP)
 
         if (COOKIES_PATH):
-            print("  Downloading course home page")
-            downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
-
-        if (COOKIES_PATH):
             print("  Downloading course list page")
             downloadCourseHTML(API_URL, COOKIES_PATH)
 
@@ -1095,9 +1091,6 @@ if __name__ == "__main__":
         #calculate how many total courses of Paginated List 
         for course in courses: 
             total_courses += 1
-
-        print("  Downloading course announcements pages")
-        downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)
     
         course_index = 0
         for course in courses:
@@ -1160,6 +1153,36 @@ if __name__ == "__main__":
         completion_label = tk.Label(root, text="Canvas Export Complete!", font=label_font)
         completion_label.pack(pady = 20)
 
+        
+        input_file = 'output/all_output.json'
+        output_file = 'output/sorted_output.json'
+
+        # Ask the user what to sort by:
+        print("Would you like to sort the final output?")
+        print("Sort options: course_code, course_id, name, term")
+        sort_key = input(
+            "Enter a valid sort type: (leave blank to skip sort) ")  # Replace with the key by which you want to sort
+
+        if sort_key == '':
+            print("Skipping sort.")
+            exit()
+
+        # Load data from the input JSON file
+        data = loadJsonFile(input_file)
+
+        if data is not None:
+            # Sort the data by the specified key
+            sorted_data = sortJsonData(data, sort_key)
+
+            # Save the sorted data to the output JSON file
+            saveSortedJsonToFile(sorted_data, output_file)
+
+            print(f"Data sorted by '{sort_key}' and saved to '{output_file}'.")
+        else:
+            print(f"File '{input_file}' not found or empty.")
+        
+
+
 
     def export_button_click():
         # Keep prompting the user for input until all fields are filled correctly
@@ -1173,34 +1196,5 @@ if __name__ == "__main__":
     export_button = tk.Button(root, text="Export Data", font = font, command=export_button_click)
     export_button.pack(pady = 20)
 
-    print("\nProcess complete. All canvas data exported!")
-
-    input_file = 'output/all_output.json'
-    output_file = 'output/sorted_output.json'
-
-    # Ask the user what to sort by:
-    print("Would you like to sort the final output?")
-    print("Sort options: course_code, course_id, name, term")
-    sort_key = input(
-        "Enter a valid sort type: (leave blank to skip sort) ")  # Replace with the key by which you want to sort
-
-    if sort_key == '':
-        print("Skipping sort.")
-        exit()
-
-    # Load data from the input JSON file
-    data = loadJsonFile(input_file)
-
-    if data is not None:
-        # Sort the data by the specified key
-        sorted_data = sortJsonData(data, sort_key)
-
-        # Save the sorted data to the output JSON file
-        saveSortedJsonToFile(sorted_data, output_file)
-
-        print(f"Data sorted by '{sort_key}' and saved to '{output_file}'.")
-    else:
-        print(f"File '{input_file}' not found or empty.")
-        
 # Run the GUI main loop
 root.mainloop()
