@@ -13,6 +13,7 @@ import dateutil.parser
 import jsonpickle
 import requests
 import yaml
+import mysql.connector
 
 try:
     with open("credentials.yaml", 'r') as f:
@@ -902,9 +903,48 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
             if not os.path.exists(discussion_page_dir):
                 download_page(discussion.url + "/page-" + str(i+1), cookies_path, discussion_dir, filename)
 
+# Initializes the database connection
+def initDatabase():
+   
+    mydb = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        passwd="root",
+        database="CPSTOPS"
+    )
+
+    return mydb
+
+# Initializes the cursor element 
+def initCursor(mydb):
+    mycursor = mydb.cursor()
+
+    return mycursor
+
+# Creates entry in the database with course information
+def addDBCourse(cview,db,cursor):
+
+    id = cview.id
+    name = cview.name
+    start_at = cview.start_at
+    end_at = cview.end_at
+
+    #print(term, " THIS IS THE TERM IDK WHAT THAT IS ")
+
+    cursor.execute("INSERT INTO courses (courseID, name, start_at, end_at) VALUES (%s, %s, %s, %s)", (id,name,end_at,start_at))
+    db.commit()
+
+    return
+
 if __name__ == "__main__":
 
     print("Welcome to the Canvas Student Data Export Tool\n")
+    
+    # Initialize Database Connection
+    dbInit = initDatabase()
+
+    # Initialize Database Cursor
+    cursInit = initCursor(dbInit)
 
     if API_URL == "":
         # Canvas API URL
@@ -912,11 +952,14 @@ if __name__ == "__main__":
               "probably something like https://{schoolName}.instructure.com)")
         API_URL = input("Enter your organization's Canvas Base URL: ")
 
+
+
     if API_KEY == "":
         # Canvas API key
         print("\nWe will need a valid API key for your user. You can generate "
               "one in Canvas once you are logged in.")
         API_KEY = input("Enter a valid API key for your user: ")
+
 
     if USER_ID == 0000000:
         # My Canvas User ID
@@ -924,6 +967,7 @@ if __name__ == "__main__":
               "logging in to canvas and then going to this URL in the same "
               "browser {yourCanvasBaseUrl}/api/v1/users/self")
         USER_ID = input("Enter your Canvas User ID: ")
+
     
     if COOKIES_PATH == "": 
         # Cookies path
@@ -932,6 +976,7 @@ if __name__ == "__main__":
               "formatted in the NetScape format. This can be left blank if an html "
               "images aren't wanted. ")
         COOKIES_PATH = input("Enter your cookies path: ")
+
 
     print("\nConnecting to canvas\n")
 
@@ -946,6 +991,7 @@ if __name__ == "__main__":
     all_courses_views = []
 
     print("Getting list of all courses\n")
+
     courses = canvas.get_courses(include="term")
 
     skip = set(COURSES_TO_SKIP)
@@ -960,6 +1006,9 @@ if __name__ == "__main__":
             continue
 
         course_view = getCourseView(course)
+
+        # Add course entry to database
+        addDBCourse(course,dbInit,cursInit)
 
         all_courses_views.append(course_view)
 
