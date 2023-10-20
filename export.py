@@ -2,6 +2,13 @@
 import json
 import os
 import string
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import messagebox
+from tkinter import scrolledtext
+from tkinter.ttk import Progressbar
+import threading
+import sys
 
 # external
 from canvasapi import Canvas
@@ -902,106 +909,214 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
             if not os.path.exists(discussion_page_dir):
                 download_page(discussion.url + "/page-" + str(i+1), cookies_path, discussion_dir, filename)
 
-if __name__ == "__main__":
+# Redirects stdout to Text widget
+class RedirectText:
+    def __init__(self, text_widget):
+        self.text_widget = text_widget
 
-    print("Welcome to the Canvas Student Data Export Tool\n")
+    def write(self, text):
+        # Insert text into the text widget
+        self.text_widget.insert("end", text)
+        
+        # Write to console
+        sys.__stdout__.write(text)
 
-    if API_URL == "":
-        # Canvas API URL
-        print("We will need your organization's Canvas Base URL. This is "
-              "probably something like https://{schoolName}.instructure.com)")
-        API_URL = input("Enter your organization's Canvas Base URL: ")
+# Validation function to check if the required GUI entries are empty
+def validate_entry():
+    canvas_url = canvas_url_entry.get()
+    api_key = api_key_entry.get()
+    user_id = user_id_entry.get()
 
-    if API_KEY == "":
-        # Canvas API key
-        print("\nWe will need a valid API key for your user. You can generate "
-              "one in Canvas once you are logged in.")
-        API_KEY = input("Enter a valid API key for your user: ")
-
-    if USER_ID == 0000000:
-        # My Canvas User ID
-        print("\nWe will need your Canvas User ID. You can find this by "
-              "logging in to canvas and then going to this URL in the same "
-              "browser {yourCanvasBaseUrl}/api/v1/users/self")
-        USER_ID = input("Enter your Canvas User ID: ")
+    if not canvas_url:
+        messagebox.showerror("Error", "Canvas URL is required")
+        return False
+    if not api_key:
+        messagebox.showerror("Error", "API Key is required")
+        return False
+    if not user_id:
+        messagebox.showerror("Error", "User ID is required")
+        return False
     
-    if COOKIES_PATH == "": 
-        # Cookies path
-        print("\nWe will need your browsers cookies file. This needs to be "
-              "exported using another tool. This needs to be a path to a file "
-              "formatted in the NetScape format. This can be left blank if an html "
-              "images aren't wanted. ")
-        COOKIES_PATH = input("Enter your cookies path: ")
+    return True
 
-    print("\nConnecting to canvas\n")
+def browse_folder():
+    folder_path = filedialog.askdirectory()
+    output_folder_entry.delete(0, tk.END)
+    output_folder_entry.insert(0, folder_path)
 
-    # Initialize a new Canvas object
-    canvas = Canvas(API_URL, API_KEY)
+if __name__ == "__main__":
+    # Create a GUI window
+    root = tk.Tk()
+    root.geometry("900x700")
+    root.title("Canvas Student Data Export Tool")
+    font = ("Helvetica", 22)
+    label_font = ("Helvetica", 24, "bold")
 
-    print("Creating output directory: " + DL_LOCATION + "\n")
-    # Create directory if not present
-    if not os.path.exists(DL_LOCATION):
-        os.makedirs(DL_LOCATION)
+    # Create and place GUI elements
+    canvas_url_label = tk.Label(root, text="Canvas Base URL:", font=label_font)
+    canvas_url_label.pack()
+    canvas_url_entry = tk.Entry(root, font=font)
+    canvas_url_entry.pack()
 
-    all_courses_views = []
+    api_key_label = tk.Label(root, text="API Key:", font=label_font)
+    api_key_label.pack()
+    api_key_entry = tk.Entry(root, font=font)
+    api_key_entry.pack()
 
-    print("Getting list of all courses\n")
-    courses = canvas.get_courses(include="term")
+    user_id_label = tk.Label(root, text="Canvas User ID:", font=label_font)
+    user_id_label.pack()
+    user_id_entry = tk.Entry(root, font=font)
+    user_id_entry.pack()
 
-    skip = set(COURSES_TO_SKIP)
+    cookies_path_label = tk.Label(root, text="Cookies Path (optional):", font=label_font)
+    cookies_path_label.pack()
+    cookies_path_entry = tk.Entry(root, font=font)
+    cookies_path_entry.pack()
+
+    output_folder_label = tk.Label(root, text="Output Folder:", font=label_font)
+    output_folder_label.pack()
+    output_folder_entry = tk.Entry(root, font=font)
+    output_folder_entry.pack()
+
+    def export_data():
+        global API_URL
+        global API_KEY
+        global USER_ID
+        global COOKIES_PATH
+        global DL_LOCATION
+        
+        API_URL = canvas_url_entry.get()
+        API_KEY = api_key_entry.get()
+        USER_ID = user_id_entry.get()
+        COOKIES_PATH = cookies_path_entry.get()
+        if output_folder_entry.get() != "":
+            DL_LOCATION = output_folder_entry.get()
+
+        #Remove entry widgets
+        for widget in root.winfo_children():
+            widget.destroy()
+
+        # Create a progress bar widget based on course number
+        progress_label = tk.Label(root, text="Canvas Export Progress:", font=label_font)
+        progress_label.pack(pady = 20)
+        progress_var = tk.DoubleVar()
+        progress_bar = Progressbar(root, length=700, mode="determinate", variable=progress_var)
+        progress_bar.pack()
+
+        # Text widget to display stdout print statements
+        console_text = scrolledtext.ScrolledText(root, wrap=tk.WORD)
+        console_text.pack(pady = 20)
+
+        # Redirect stdout to the text widget (Print statements will still show in console)
+        sys.stdout = RedirectText(console_text)
+
+        print("Welcome to the Canvas Student Data Export Tool\n")
+
+        print("API_URL:", API_URL)
+        print("API_KEY:", API_KEY)
+        print("USER_ID:", USER_ID)
+        print("DL_LOCATION:", DL_LOCATION)        
+
+        print("\nConnecting to canvas\n")
+
+        # Initialize a new Canvas object
+        canvas = Canvas(API_URL, API_KEY)
+
+        print("Creating output directory: " + DL_LOCATION + "\n")
+        # Create directory if not present
+        if not os.path.exists(DL_LOCATION):
+            os.makedirs(DL_LOCATION)
+
+        all_courses_views = []
+
+        print("Getting list of all courses\n")
+        courses = canvas.get_courses(include="term")
+
+        skip = set(COURSES_TO_SKIP)
 
 
-    if (COOKIES_PATH):
-        print("  Downloading course list page")
-        downloadCourseHTML(API_URL, COOKIES_PATH)
+        if (COOKIES_PATH):
+            print("  Downloading course list page")
+            downloadCourseHTML(API_URL, COOKIES_PATH)
 
-    for course in courses:
-        if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
-            continue
+        total_courses = 0
+        #calculate how many total courses of Paginated List 
+        for course in courses: 
+            total_courses += 1
 
-        course_view = getCourseView(course)
+        course_index = 0
+        for course in courses:
+            # Simulate a progress bar update
+            progress_percentage = (course_index / total_courses * 100)
+            progress_var.set(progress_percentage)
+            root.update_idletasks()
+       
+            if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
+                continue
 
-        all_courses_views.append(course_view)
+            course_view = getCourseView(course)
 
-        print("  Downloading all files")
-        downloadCourseFiles(course, course_view)
+            all_courses_views.append(course_view)
 
-        print("  Downloading submission attachments")
-        download_submission_attachments(course, course_view)
+            print("  Downloading all files")
+            downloadCourseFiles(course, course_view)
 
-        print("  Getting modules and downloading module files")
-        course_view.modules = findCourseModules(course, course_view)
+            print("  Downloading submission attachments")
+            download_submission_attachments(course, course_view)
 
-        if(COOKIES_PATH):
-            print("  Downloading course home page")
-            downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
+            print("  Getting modules and downloading module files")
+            course_view.modules = findCourseModules(course, course_view)
 
-            print("  Downloading assignment pages")
-            downloadAssignmentPages(API_URL, course_view, COOKIES_PATH)
+            if(COOKIES_PATH):
+                print("  Downloading course home page")
+                downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
 
-            print("  Downloading course module pages")
-            downloadCourseModulePages(API_URL, course_view, COOKIES_PATH)
+                print("  Downloading assignment pages")
+                downloadAssignmentPages(API_URL, course_view, COOKIES_PATH)
 
-            print("  Downloading course announcements pages")
-            downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)   
+                print("  Downloading course module pages")
+                downloadCourseModulePages(API_URL, course_view, COOKIES_PATH)
 
-            print("  Downloading course discussion pages")
-            downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
+                print("  Downloading course announcements pages")
+                downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)   
 
-        print("  Exporting all course data")
-        exportAllCourseData(course_view)
+                print("  Downloading course discussion pages")
+                downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
 
-    print("Exporting data from all courses combined as one file: "
-          "all_output.json")
-    # Awful hack to make the JSON pretty. Decode it with Python stdlib json
-    # module then re-encode with indentation
-    json_str = json.dumps(json.loads(jsonpickle.encode(all_courses_views,
-                                                       unpicklable=False)),
-                          indent=4)
+            print("  Exporting all course data")
+            exportAllCourseData(course_view)
+            course_index += 1
 
-    all_output_path = os.path.join(DL_LOCATION, "all_output.json")
+        print("Exporting data from all courses combined as one file: "
+            "all_output.json")
+        # Awful hack to make the JSON pretty. Decode it with Python stdlib json
+        # module then re-encode with indentation
+        json_str = json.dumps(json.loads(jsonpickle.encode(all_courses_views,
+                                                        unpicklable=False)),
+                            indent=4)
 
-    with open(all_output_path, "w") as out_file:
-        out_file.write(json_str)
+        all_output_path = os.path.join(DL_LOCATION, "all_output.json")
 
-    print("\nProcess complete. All canvas data exported!")
+        with open(all_output_path, "w") as out_file:
+            out_file.write(json_str)
+
+        print("\nProcess complete. All canvas data exported!")
+        messagebox.showinfo("Success", "Data export completed!")
+        completion_label = tk.Label(root, text="Canvas Export Complete!", font=label_font)
+        completion_label.pack(pady = 20)
+
+
+    def export_button_click():
+        # Keep prompting the user for input until all fields are filled correctly
+        if (validate_entry()):
+            export_thread = threading.Thread(target=export_data)
+            export_thread.start()  # Proceed with exporting data in seperate thread once all fields are filled correctly
+
+    browse_button = tk.Button(root, text="Browse", font = font, command=browse_folder)
+    browse_button.pack(pady = 20)
+
+    export_button = tk.Button(root, text="Export Data", font = font, command=export_button_click)
+    export_button.pack(pady = 20)
+
+# Run the GUI main loop
+root.mainloop()
