@@ -52,12 +52,13 @@ DATE_TEMPLATE = "%B %d, %Y %I:%M %p"
 # If a folder exceeds this limit, a "-" will be added to the end to indicate it was shortened ("..." not valid)
 MAX_FOLDER_NAME_SIZE = 70
 
+
 class moduleItemView():
     id = 0
-    
+
     title = ""
     content_type = ""
-    
+
     url = ""
     external_url = ""
 
@@ -134,11 +135,13 @@ class submissionView():
     def __init__(self):
         self.attachments = []
 
+
 class attachmentView():
     id = 0
 
     filename = ""
     url = ""
+
 
 class assignmentView():
     id = 0
@@ -152,14 +155,14 @@ class assignmentView():
     html_url = ""
     ext_url = ""
     updated_url = ""
-    
+
     def __init__(self):
         self.submissions = []
 
 
 class courseView():
     course_id = 0
-    
+
     term = ""
     course_code = ""
     name = ""
@@ -174,15 +177,16 @@ class courseView():
         self.discussions = []
         self.modules = []
 
+
 def makeValidFilename(input_str):
-    if(not input_str):
+    if (not input_str):
         return input_str
 
     # Remove invalid characters
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-    input_str = input_str.replace("+"," ") # Canvas default for spaces
-    input_str = input_str.replace(":","-")
-    input_str = input_str.replace("/","-")
+    input_str = input_str.replace("+", " ")  # Canvas default for spaces
+    input_str = input_str.replace(":", "-")
+    input_str = input_str.replace("/", "-")
     input_str = "".join(c for c in input_str if c in valid_chars)
 
     # Remove leading and trailing whitespace
@@ -193,11 +197,12 @@ def makeValidFilename(input_str):
 
     return input_str
 
+
 def makeValidFolderPath(input_str):
     # Remove invalid characters
     valid_chars = "-_.()/ %s%s" % (string.ascii_letters, string.digits)
-    input_str = input_str.replace("+"," ") # Canvas default for spaces
-    input_str = input_str.replace(":","-")
+    input_str = input_str.replace("+", " ")  # Canvas default for spaces
+    input_str = input_str.replace(":", "-")
     input_str = "".join(c for c in input_str if c in valid_chars)
 
     # Remove leading and trailing whitespace, separators
@@ -207,20 +212,21 @@ def makeValidFolderPath(input_str):
     input_str = input_str.rstrip(".")
 
     # Replace path separators with OS default
-    input_str=input_str.replace("/",os.sep)
+    input_str = input_str.replace("/", os.sep)
 
     return input_str
+
 
 def shortenFileName(string, shorten_by) -> str:
     if (not string or shorten_by <= 0):
         return string
 
     # Shorten string by specified value + 1 for "-" to indicate incomplete file name (trailing periods not allowed)
-    string = string[:len(string)-(shorten_by + 1)]
+    string = string[:len(string) - (shorten_by + 1)]
 
     string = string.rstrip().rstrip(".").rstrip("-")
     string += "-"
-    
+
     return string
 
 
@@ -264,7 +270,8 @@ def findCourseModules(course, course_view):
                     # URL
                     module_item_view.url = str(module_item.html_url) if hasattr(module_item, "html_url") else ""
                     # External URL
-                    module_item_view.external_url = str(module_item.external_url) if hasattr(module_item, "external_url") else ""
+                    module_item_view.external_url = str(module_item.external_url) if hasattr(module_item,
+                                                                                             "external_url") else ""
 
                     if module_item_view.content_type == "File":
                         # If problems arise due to long pathnames, changing module.name to module.id might help
@@ -282,7 +289,8 @@ def findCourseModules(course, course_view):
                             module_file = course.get_file(str(module_item.content_id))
 
                             # Create path for module file download
-                            module_file_path = os.path.join(module_dir, makeValidFilename(str(module_file.display_name)))
+                            module_file_path = os.path.join(module_dir,
+                                                            makeValidFilename(str(module_file.display_name)))
 
                             # Download file if it doesn't already exist
                             if not os.path.exists(module_file_path):
@@ -318,13 +326,13 @@ def downloadCourseFiles(course, course_view):
         files = course.get_files()
 
         for file in files:
-            file_folder=course.get_folder(file.folder_id)
-            
-            folder_dl_dir=os.path.join(dl_dir, makeValidFolderPath(file_folder.full_name))
-            
+            file_folder = course.get_folder(file.folder_id)
+
+            folder_dl_dir = os.path.join(dl_dir, makeValidFolderPath(file_folder.full_name))
+
             if not os.path.exists(folder_dl_dir):
                 os.makedirs(folder_dl_dir)
-        
+
             dl_path = os.path.join(folder_dl_dir, makeValidFilename(str(file.display_name)))
 
             # Download file if it doesn't already exist
@@ -349,13 +357,13 @@ def download_submission_attachments(course, course_view):
             assignment_title = makeValidFilename(str(assignment.title))
             assignment_title = shortenFileName(assignment_title, len(assignment_title) - MAX_FOLDER_NAME_SIZE)
             attachment_dir = os.path.join(course_dir, "assignments", assignment_title)
-            if(len(assignment.submissions)!=1):
-                attachment_dir = os.path.join(attachment_dir,str(submission.user_id))
+            if (len(assignment.submissions) != 1):
+                attachment_dir = os.path.join(attachment_dir, str(submission.user_id))
             if (not os.path.exists(attachment_dir)) and (submission.attachments):
                 os.makedirs(attachment_dir)
             for attachment in submission.attachments:
                 filepath = os.path.join(attachment_dir, makeValidFilename(str(attachment.id) +
-                                        "_" + attachment.filename))
+                                                                          "_" + attachment.filename))
                 if not os.path.exists(filepath):
                     print('Downloading attachment: {}'.format(filepath))
                     r = requests.get(attachment.url, allow_redirects=True)
@@ -422,13 +430,13 @@ def findCourseAssignments(course):
 
     # Get all assignments
     assignments = course.get_assignments()
-    
+
     try:
         for assignment in assignments:
             # Create a new assignment view
             assignment_view = assignmentView()
 
-            #ID
+            # ID
             assignment_view.id = assignment.id if \
                 hasattr(assignment, "id") else ""
 
@@ -438,17 +446,17 @@ def findCourseAssignments(course):
             # Description
             assignment_view.description = str(assignment.description) if \
                 hasattr(assignment, "description") else ""
-            
+
             # Assigned date
             assignment_view.assigned_date = assignment.created_at_date.strftime(DATE_TEMPLATE) if \
                 hasattr(assignment, "created_at_date") else ""
             # Due date
             assignment_view.due_date = assignment.due_at_date.strftime(DATE_TEMPLATE) if \
-                hasattr(assignment, "due_at_date") else ""    
+                hasattr(assignment, "due_at_date") else ""
 
             # HTML Url
             assignment_view.html_url = assignment.html_url if \
-                hasattr(assignment, "html_url") else ""   
+                hasattr(assignment, "html_url") else ""
             # External URL
             assignment_view.ext_url = str(assignment.url) if \
                 hasattr(assignment, "url") else ""
@@ -457,14 +465,14 @@ def findCourseAssignments(course):
                 hasattr(assignment, "submissions_download_url") else ""
 
             try:
-                try: # Download all submissions for entire class
+                try:  # Download all submissions for entire class
                     submissions = assignment.get_submissions()
-                    submissions[0] # Trigger Unauthorized if not allowed
+                    submissions[0]  # Trigger Unauthorized if not allowed
                 except Unauthorized:
                     print("Not authorized to download entire class submissions for this assignment")
                     # Download submission for this user only
                     submissions = [assignment.get_submission(USER_ID)]
-                submissions[0] #throw error if no submissions found at all but without error
+                submissions[0]  # throw error if no submissions found at all but without error
             except (ResourceDoesNotExist, NameError, IndexError):
                 print('Got no submissions from either class or user: {}'.format(USER_ID))
             except Exception as e:
@@ -479,7 +487,7 @@ def findCourseAssignments(course):
                         # Submission ID
                         sub_view.id = submission.id if \
                             hasattr(submission, "id") else 0
-                            
+
                         # My grade
                         sub_view.grade = str(submission.grade) if \
                             hasattr(submission, "grade") else ""
@@ -498,7 +506,7 @@ def findCourseAssignments(course):
                         # User ID
                         sub_view.user_id = str(submission.user_id) if \
                             hasattr(submission, "user_id") else ""
-                        
+
                         # Submission URL
                         sub_view.preview_url = str(submission.preview_url) if \
                             hasattr(submission, "preview_url") else ""
@@ -551,7 +559,7 @@ def getDiscussionView(discussion_topic):
     # Create discussion view
     discussion_view = discussionView()
 
-    #ID
+    # ID
     discussion_view.id = discussion_topic.id if hasattr(discussion_topic, "id") else 0
 
     # Title
@@ -559,13 +567,14 @@ def getDiscussionView(discussion_topic):
     # Author
     discussion_view.author = str(discussion_topic.user_name) if hasattr(discussion_topic, "user_name") else ""
     # Posted date
-    discussion_view.posted_date = discussion_topic.created_at_date.strftime("%B %d, %Y %I:%M %p") if hasattr(discussion_topic, "created_at_date") else ""
+    discussion_view.posted_date = discussion_topic.created_at_date.strftime("%B %d, %Y %I:%M %p") if hasattr(
+        discussion_topic, "created_at_date") else ""
     # Body
     discussion_view.body = str(discussion_topic.message) if hasattr(discussion_topic, "message") else ""
 
     # URL
     discussion_view.url = str(discussion_topic.html_url) if hasattr(discussion_topic, "html_url") else ""
-    
+
     # Keeps track of how many topic_entries there are.
     topic_entries_counter = 0
 
@@ -578,7 +587,7 @@ def getDiscussionView(discussion_topic):
         try:
             for topic_entry in discussion_topic_entries:
                 topic_entries_counter += 1
-                
+
                 # Create new discussion view for the topic_entry
                 topic_entry_view = topicEntryView()
 
@@ -587,7 +596,8 @@ def getDiscussionView(discussion_topic):
                 # Author
                 topic_entry_view.author = str(topic_entry.user_name) if hasattr(topic_entry, "user_name") else ""
                 # Posted date
-                topic_entry_view.posted_date = topic_entry.created_at_date.strftime("%B %d, %Y %I:%M %p") if hasattr(topic_entry, "created_at_date") else ""
+                topic_entry_view.posted_date = topic_entry.created_at_date.strftime("%B %d, %Y %I:%M %p") if hasattr(
+                    topic_entry, "created_at_date") else ""
                 # Body
                 topic_entry_view.body = str(topic_entry.message) if hasattr(topic_entry, "message") else ""
 
@@ -598,14 +608,16 @@ def getDiscussionView(discussion_topic):
                     for topic_reply in topic_entry_replies:
                         # Create new topic reply view
                         topic_reply_view = topicReplyView()
-                        
+
                         # ID
                         topic_reply_view.id = topic_reply.id if hasattr(topic_reply, "id") else 0
 
                         # Author
-                        topic_reply_view.author = str(topic_reply.user_name) if hasattr(topic_reply, "user_name") else ""
+                        topic_reply_view.author = str(topic_reply.user_name) if hasattr(topic_reply,
+                                                                                        "user_name") else ""
                         # Posted Date
-                        topic_reply_view.posted_date = topic_reply.created_at_date.strftime("%B %d, %Y %I:%M %p") if hasattr(topic_reply, "created_at_date") else ""
+                        topic_reply_view.posted_date = topic_reply.created_at_date.strftime(
+                            "%B %d, %Y %I:%M %p") if hasattr(topic_reply, "created_at_date") else ""
                         # Body
                         topic_reply_view.message = str(topic_reply.message) if hasattr(topic_reply, "message") else ""
 
@@ -618,10 +630,11 @@ def getDiscussionView(discussion_topic):
         except Exception as e:
             print("Tried to enumerate discussion topic entries but received the following error:")
             print(e)
-        
-    # Amount of pages  
-    discussion_view.amount_pages = int(topic_entries_counter/50) + 1 # Typically 50 topic entries are stored on a page before it creates another page.
-    
+
+    # Amount of pages
+    discussion_view.amount_pages = int(
+        topic_entries_counter / 50) + 1  # Typically 50 topic entries are stored on a page before it creates another page.
+
     return discussion_view
 
 
@@ -650,7 +663,8 @@ def getCourseView(course):
     course_view.course_id = course.id if hasattr(course, "id") else 0
 
     # Course term
-    course_view.term = makeValidFilename(course.term["name"] if hasattr(course, "term") and "name" in course.term.keys() else "")
+    course_view.term = makeValidFilename(
+        course.term["name"] if hasattr(course, "term") and "name" in course.term.keys() else "")
 
     # Course code
     course_view.course_code = makeValidFilename(course.course_code if hasattr(course, "course_code") else "")
@@ -680,7 +694,7 @@ def getCourseView(course):
 
 
 def exportAllCourseData(course_view):
-    json_str = json.dumps(json.loads(jsonpickle.encode(course_view, unpicklable = False)), indent = 4)
+    json_str = json.dumps(json.loads(jsonpickle.encode(course_view, unpicklable=False)), indent=4)
 
     course_output_dir = os.path.join(DL_LOCATION, course_view.term,
                                      course_view.course_code)
@@ -695,8 +709,9 @@ def exportAllCourseData(course_view):
     with open(course_output_path, "w") as out_file:
         out_file.write(json_str)
 
+
 def downloadCourseHTML(api_url, cookies_path):
-    if(cookies_path == ""):
+    if (cookies_path == ""):
         return
 
     course_dir = DL_LOCATION
@@ -710,12 +725,13 @@ def downloadCourseHTML(api_url, cookies_path):
     if not os.path.exists(course_list_path):
         download_page(api_url + "/courses/", cookies_path, course_dir, "course_list.html")
 
+
 def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
-    if(cookies_path == ""):
+    if (cookies_path == ""):
         return
 
     dl_dir = os.path.join(DL_LOCATION, course_view.term,
-                         course_view.course_code)
+                          course_view.course_code)
 
     # Create directory if not present
     if not os.path.exists(dl_dir):
@@ -727,12 +743,13 @@ def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
     if not os.path.exists(homepage_path):
         download_page(api_url + "/courses/" + str(course_view.course_id), cookies_path, dl_dir, "homepage.html")
 
+
 def downloadAssignmentPages(api_url, course_view, cookies_path):
-    if(cookies_path == "" or len(course_view.assignments) == 0):
+    if (cookies_path == "" or len(course_view.assignments) == 0):
         return
 
     base_assign_dir = os.path.join(DL_LOCATION, course_view.term,
-        course_view.course_code, "assignments")
+                                   course_view.course_code, "assignments")
 
     # Create directory if not present
     if not os.path.exists(base_assign_dir):
@@ -742,14 +759,15 @@ def downloadAssignmentPages(api_url, course_view, cookies_path):
 
     # Download assignment list (theres a chance this might be the course homepage if the course has the assignments page disabled)
     if not os.path.exists(assignment_list_path):
-        download_page(api_url + "/courses/" + str(course_view.course_id) + "/assignments/", cookies_path, base_assign_dir, "assignment_list.html")
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/assignments/", cookies_path,
+                      base_assign_dir, "assignment_list.html")
 
     for assignment in course_view.assignments:
         assignment_title = makeValidFilename(str(assignment.title))
-        assignment_title = shortenFileName(assignment_title, len(assignment_title) - MAX_FOLDER_NAME_SIZE)  
+        assignment_title = shortenFileName(assignment_title, len(assignment_title) - MAX_FOLDER_NAME_SIZE)
         assign_dir = os.path.join(base_assign_dir, assignment_title)
 
-        # Download an html image of each assignment (includes assignment instructions and other stuff). 
+        # Download an html image of each assignment (includes assignment instructions and other stuff).
         # Currently, this will only download the main assignment page and not external pages, this is
         # because these external pages are given in a json format. Saving these would require a lot
         # more work then normal.
@@ -778,32 +796,34 @@ def downloadAssignmentPages(api_url, course_view, cookies_path):
 
                 # Download submission url, this is typically a more focused page
                 if not os.path.exists(submission_page_dir):
-                    download_page(submission.preview_url, cookies_path, submission_dir, "submission.html")    
+                    download_page(submission.preview_url, cookies_path, submission_dir, "submission.html")
 
-            # If theres more then 1 attempt, save each attempt in attempts folder
-            if (submission.attempt != 1 and assignment.updated_url != "" and assignment.html_url != "" 
-                and assignment.html_url.rstrip("/") != assignment.updated_url.rstrip("/")):
+                    # If theres more then 1 attempt, save each attempt in attempts folder
+            if (submission.attempt != 1 and assignment.updated_url != "" and assignment.html_url != ""
+                    and assignment.html_url.rstrip("/") != assignment.updated_url.rstrip("/")):
                 submission_dir = os.path.join(assign_dir, "attempts")
-                
+
                 if not os.path.exists(submission_dir):
                     os.makedirs(submission_dir)
 
                 # Saves the attempts if multiple were taken, doesn't account for
-                # different ID's however, as I wasnt able to find out what the url 
-                # for the specific id's attempts would be. 
+                # different ID's however, as I wasnt able to find out what the url
+                # for the specific id's attempts would be.
                 for i in range(submission.attempt):
-                    filename = "attempt_" + str(i+1) + ".html"
+                    filename = "attempt_" + str(i + 1) + ".html"
                     submission_page_attempt_dir = os.path.join(submission_dir, filename)
 
                     if not os.path.exists(submission_page_attempt_dir):
-                        download_page(assignment.updated_url + "/history?version=" + str(i+1), cookies_path, submission_dir, filename)
+                        download_page(assignment.updated_url + "/history?version=" + str(i + 1), cookies_path,
+                                      submission_dir, filename)
 
-def downloadCourseModulePages(api_url, course_view, cookies_path): 
-    if(cookies_path == "" or len(course_view.modules) == 0):
+
+def downloadCourseModulePages(api_url, course_view, cookies_path):
+    if (cookies_path == "" or len(course_view.modules) == 0):
         return
 
     modules_dir = os.path.join(DL_LOCATION, course_view.term,
-        course_view.course_code, "modules")
+                               course_view.course_code, "modules")
 
     # Create modules directory if not present
     if not os.path.exists(modules_dir):
@@ -813,7 +833,8 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
 
     # Downloads the modules page (possible this is disabled by the teacher)
     if not os.path.exists(module_list_dir):
-        download_page(api_url + "/courses/" + str(course_view.course_id) + "/modules/", COOKIES_PATH, modules_dir, "modules_list.html")
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/modules/", COOKIES_PATH, modules_dir,
+                      "modules_list.html")
 
     for module in course_view.modules:
         for item in module.items:
@@ -822,7 +843,7 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
             module_name = makeValidFilename(str(module.name))
             module_name = shortenFileName(module_name, len(module_name) - MAX_FOLDER_NAME_SIZE)
             items_dir = os.path.join(modules_dir, module_name)
-            
+
             # Create modules directory if not present
             if item.url != "":
                 if not os.path.exists(items_dir):
@@ -835,22 +856,24 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
                 if not os.path.exists(module_item_dir):
                     download_page(item.url, cookies_path, items_dir, filename)
 
+
 def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
-    if(cookies_path == "" or len(course_view.announcements) == 0):
+    if (cookies_path == "" or len(course_view.announcements) == 0):
         return
 
     base_announce_dir = os.path.join(DL_LOCATION, course_view.term,
-        course_view.course_code, "announcements")
+                                     course_view.course_code, "announcements")
 
     # Create directory if not present
     if not os.path.exists(base_announce_dir):
         os.makedirs(base_announce_dir)
 
     announcement_list_dir = os.path.join(base_announce_dir, "announcement_list.html")
-    
+
     # Download assignment list (theres a chance this might be the course homepage if the course has the assignments page disabled)
     if not os.path.exists(announcement_list_dir):
-        download_page(api_url + "/courses/" + str(course_view.course_id) + "/announcements/", cookies_path, base_announce_dir, "announcement_list.html")
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/announcements/", cookies_path,
+                      base_announce_dir, "announcement_list.html")
 
     for announcements in course_view.announcements:
         announcements_title = makeValidFilename(str(announcements.title))
@@ -865,19 +888,20 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
 
         # Downloads each page that a discussion takes.
         for i in range(announcements.amount_pages):
-            filename = "announcement_" + str(i+1) + ".html"
+            filename = "announcement_" + str(i + 1) + ".html"
             announcement_page_dir = os.path.join(announce_dir, filename)
 
             # Download assignment page, this usually has instructions and etc.
             if not os.path.exists(announcement_page_dir):
-                download_page(announcements.url + "/page-" + str(i+1), cookies_path, announce_dir, filename)
-        
+                download_page(announcements.url + "/page-" + str(i + 1), cookies_path, announce_dir, filename)
+
+
 def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
-    if(cookies_path == "" or len(course_view.discussions) == 0):
+    if (cookies_path == "" or len(course_view.discussions) == 0):
         return
 
     base_discussion_dir = os.path.join(DL_LOCATION, course_view.term,
-        course_view.course_code, "discussions")
+                                       course_view.course_code, "discussions")
 
     # Create directory if not present
     if not os.path.exists(base_discussion_dir):
@@ -887,7 +911,8 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
 
     # Download assignment list (theres a chance this might be the course homepage if the course has the assignments page disabled)
     if not os.path.exists(discussion_list_dir):
-        download_page(api_url + "/courses/" + str(course_view.course_id) + "/discussion_topics/", cookies_path, base_discussion_dir, "discussion_list.html")
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/discussion_topics/", cookies_path,
+                      base_discussion_dir, "discussion_list.html")
 
     for discussion in course_view.discussions:
         discussion_title = makeValidFilename(str(discussion.title))
@@ -902,24 +927,48 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
 
         # Downloads each page that a discussion takes.
         for i in range(discussion.amount_pages):
-            filename = "discussion_" + str(i+1) + ".html"
+            filename = "discussion_" + str(i + 1) + ".html"
             discussion_page_dir = os.path.join(discussion_dir, filename)
-            
+
             # Download assignment page, this usually has instructions and etc.
             if not os.path.exists(discussion_page_dir):
-                download_page(discussion.url + "/page-" + str(i+1), cookies_path, discussion_dir, filename)
+                download_page(discussion.url + "/page-" + str(i + 1), cookies_path, discussion_dir, filename)
+
+
+# Function to load JSON data from a file
+def loadJsonFile(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+        return data
+    except FileNotFoundError:
+        return None
+
+# Function to sort JSON data by a specified key
+def sortJsonData(data, key):
+    if isinstance(data, list):
+        return sorted(data, key=lambda x: x.get(key, ''))
+    else:
+        return data
+
+# Function to save sorted data to a JSON file
+def saveSortedJsonToFile(data, file_path):
+    with open(file_path, 'w+') as file:
+        json.dump(data, file, indent=4)
+
 
 # Redirects stdout to Text widget
 class RedirectText:
     def __init__(self, text_widget):
         self.text_widget = text_widget
 
-    def write(self, text):
-        # Insert text into the text widget
-        self.text_widget.insert("end", text)
-        
-        # Write to console
-        sys.__stdout__.write(text)
+
+def write(self, text):
+    # Insert text into the text widget
+    self.text_widget.insert("end", text)
+
+    # Write to console
+    sys.__stdout__.write(text)
 
 # Validation function to check if the required GUI entries are empty
 def validate_entry():
@@ -1015,7 +1064,7 @@ if __name__ == "__main__":
         print("API_URL:", API_URL)
         print("API_KEY:", API_KEY)
         print("USER_ID:", USER_ID)
-        print("DL_LOCATION:", DL_LOCATION)        
+        print("DL_LOCATION:", DL_LOCATION)
 
         print("\nConnecting to canvas\n")
 
@@ -1034,6 +1083,9 @@ if __name__ == "__main__":
 
         skip = set(COURSES_TO_SKIP)
 
+        if (COOKIES_PATH):
+            print("  Downloading course home page")
+            downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
 
         if (COOKIES_PATH):
             print("  Downloading course list page")
@@ -1044,6 +1096,9 @@ if __name__ == "__main__":
         for course in courses: 
             total_courses += 1
 
+        print("  Downloading course announcements pages")
+        downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)
+    
         course_index = 0
         for course in courses:
             # Simulate a progress bar update
@@ -1118,5 +1173,34 @@ if __name__ == "__main__":
     export_button = tk.Button(root, text="Export Data", font = font, command=export_button_click)
     export_button.pack(pady = 20)
 
+    print("\nProcess complete. All canvas data exported!")
+
+    input_file = 'output/all_output.json'
+    output_file = 'output/sorted_output.json'
+
+    # Ask the user what to sort by:
+    print("Would you like to sort the final output?")
+    print("Sort options: course_code, course_id, name, term")
+    sort_key = input(
+        "Enter a valid sort type: (leave blank to skip sort) ")  # Replace with the key by which you want to sort
+
+    if sort_key == '':
+        print("Skipping sort.")
+        exit()
+
+    # Load data from the input JSON file
+    data = loadJsonFile(input_file)
+
+    if data is not None:
+        # Sort the data by the specified key
+        sorted_data = sortJsonData(data, sort_key)
+
+        # Save the sorted data to the output JSON file
+        saveSortedJsonToFile(sorted_data, output_file)
+
+        print(f"Data sorted by '{sort_key}' and saved to '{output_file}'.")
+    else:
+        print(f"File '{input_file}' not found or empty.")
+        
 # Run the GUI main loop
 root.mainloop()
