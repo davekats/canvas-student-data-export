@@ -20,6 +20,7 @@ import dateutil.parser
 import jsonpickle
 import requests
 import yaml
+import mysql.connector
 
 import shutil
 
@@ -1014,6 +1015,39 @@ def browse_folder():
     output_folder_entry.delete(0, tk.END)
     output_folder_entry.insert(0, folder_path)
 
+# Initializes the database connection
+def initDatabase():
+   
+    mydb = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        passwd="root",
+        database="CPSTOPS"
+    )
+
+    return mydb
+
+# Initializes the cursor element 
+def initCursor(mydb):
+    mycursor = mydb.cursor()
+
+    return mycursor
+
+# Creates entry in the database with course information
+def addDBCourse(cview,db,cursor):
+
+    id = cview.id
+    name = cview.name
+    start_at = cview.start_at
+    end_at = cview.end_at
+
+    #print(term, " THIS IS THE TERM IDK WHAT THAT IS ")
+
+    cursor.execute("INSERT INTO courses (courseID, name, start_at, end_at) VALUES (%s, %s, %s, %s)", (id,name,end_at,start_at))
+    db.commit()
+
+    return
+
 if __name__ == "__main__":
     # Create a GUI window
     root = tk.Tk()
@@ -1076,6 +1110,12 @@ if __name__ == "__main__":
         # Text widget to display stdout print statements
         console_text = scrolledtext.ScrolledText(root, wrap=tk.WORD)
         console_text.pack(pady = 20)
+    
+        # Initialize Database Connection
+        dbInit = initDatabase()
+
+        # Initialize Database Cursor
+        cursInit = initCursor(dbInit)
 
         # Redirect stdout to the text widget (Print statements will still show in console)
         # sys.stdout = RedirectText(console_text)
@@ -1136,6 +1176,7 @@ if __name__ == "__main__":
             print("  Getting modules and downloading module files")
             course_view.modules = findCourseModules(course, course_view)
 
+
             if(COOKIES_PATH):
                 print("  Downloading course home page")
                 downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
@@ -1151,6 +1192,9 @@ if __name__ == "__main__":
 
                 print("  Downloading course discussion pages")
                 downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
+
+            # Add course entry to database
+            addDBCourse(course,dbInit,cursInit)
 
             print("  Exporting all course data")
             exportAllCourseData(course_view)

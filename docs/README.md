@@ -53,6 +53,9 @@ You can install these dependencies using
 AND
 `npm i`
 
+## Additions
+`pip3 install mysql-connector-python`
+
 Then run from the command line:
 `python export.py`
 
