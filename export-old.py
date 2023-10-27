@@ -42,19 +42,21 @@ else:
     USER_ID = credentials["USER_ID"]
     COOKIES_PATH = credentials["COOKIES_PATH"]
 
+
 def flag_file_if_needed(filepath):
     """Check the file for specific criteria and flag (copy) if necessary."""
     print(f"Checking file: {filepath}")
-   # In this case, we're looking for 'grade' in the filename.
+    # In this case, we're looking for 'grade' in the filename.
     if 'grade' in os.path.basename(filepath).lower():
         flagged_dir = os.path.join(DL_LOCATION, "flagged_files")
-        
+
         if not os.path.exists(flagged_dir):
             os.makedirs(flagged_dir)
             print(f"Created directory: {flagged_dir}")
-        
+
         # copy the file to the flagged directory
         shutil.copy2(filepath, flagged_dir)
+
 
 # Directory in which to download course information to (will be created if not
 # present)
@@ -876,7 +878,7 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
                 # Download the module page.
                 if not os.path.exists(module_item_dir):
                     download_page(item.url, cookies_path, items_dir, filename)
-                    # flag_file_if_needed(flag_file_if_needed(download_page(item.url, cookies_path, items_dir, filename)))
+                    flag_file_if_needed(flag_file_if_needed(download_page(item.url, cookies_path, items_dir, filename)))
 
 
 def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
@@ -915,8 +917,9 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
 
             # Download assignment page, this usually has instructions and etc.
             if not os.path.exists(announcement_page_dir):
-                download_page(announcements.url + "/page-" + str(i+1), cookies_path, announce_dir, filename)
-                # flag_file_if_needed(download_page)
+                download_page(announcements.url + "/page-" + str(i + 1), cookies_path, announce_dir, filename)
+                flag_file_if_needed(download_page)
+
 
 def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
     if (cookies_path == "" or len(course_view.discussions) == 0):
@@ -954,8 +957,9 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
 
             # Download assignment page, this usually has instructions and etc.
             if not os.path.exists(discussion_page_dir):
-                download_page(discussion.url + "/page-" + str(i+1), cookies_path, discussion_dir, filename)
-                # flag_file_if_needed(download_page)
+                download_page(discussion.url + "/page-" + str(i + 1), cookies_path, discussion_dir, filename)
+                flag_file_if_needed(download_page)
+
 
 # Function to load JSON data from a file
 def loadJsonFile(file_path):
@@ -966,12 +970,14 @@ def loadJsonFile(file_path):
     except FileNotFoundError:
         return None
 
+
 # Function to sort JSON data by a specified key
 def sortJsonData(data, key):
     if isinstance(data, list):
         return sorted(data, key=lambda x: x.get(key, ''))
     else:
         return data
+
 
 # Function to save sorted data to a JSON file
 def saveSortedJsonToFile(data, file_path):
@@ -992,6 +998,7 @@ def write(self, text):
     # Write to console
     sys.__stdout__.write(text)
 
+
 # Validation function to check if the required GUI entries are empty
 def validate_entry():
     canvas_url = canvas_url_entry.get()
@@ -1007,17 +1014,18 @@ def validate_entry():
     if not user_id:
         messagebox.showerror("Error", "User ID is required")
         return False
-    
+
     return True
+
 
 def browse_folder():
     folder_path = filedialog.askdirectory()
     output_folder_entry.delete(0, tk.END)
     output_folder_entry.insert(0, folder_path)
 
+
 # Initializes the database connection
 def initDatabase():
-   
     mydb = mysql.connector.connect(
         host="localhost",
         user="root",
@@ -1027,26 +1035,29 @@ def initDatabase():
 
     return mydb
 
-# Initializes the cursor element 
+
+# Initializes the cursor element
 def initCursor(mydb):
     mycursor = mydb.cursor()
 
     return mycursor
 
-# Creates entry in the database with course information
-def addDBCourse(cview,db,cursor):
 
+# Creates entry in the database with course information
+def addDBCourse(cview, db, cursor):
     id = cview.id
     name = cview.name
     start_at = cview.start_at
     end_at = cview.end_at
 
-    #print(term, " THIS IS THE TERM IDK WHAT THAT IS ")
+    # print(term, " THIS IS THE TERM IDK WHAT THAT IS ")
 
-    cursor.execute("INSERT INTO courses (courseID, name, start_at, end_at) VALUES (%s, %s, %s, %s)", (id,name,end_at,start_at))
+    cursor.execute("INSERT INTO courses (courseID, name, start_at, end_at) VALUES (%s, %s, %s, %s)",
+                   (id, name, end_at, start_at))
     db.commit()
 
     return
+
 
 if __name__ == "__main__":
     # Create a GUI window
@@ -1082,13 +1093,14 @@ if __name__ == "__main__":
     output_folder_entry = tk.Entry(root, font=font)
     output_folder_entry.pack()
 
+
     def export_data():
         global API_URL
         global API_KEY
         global USER_ID
         global COOKIES_PATH
         global DL_LOCATION
-        
+
         API_URL = canvas_url_entry.get()
         API_KEY = api_key_entry.get()
         USER_ID = user_id_entry.get()
@@ -1096,21 +1108,21 @@ if __name__ == "__main__":
         if output_folder_entry.get() != "":
             DL_LOCATION = output_folder_entry.get()
 
-        #Remove entry widgets
+        # Remove entry widgets
         for widget in root.winfo_children():
             widget.destroy()
 
         # Create a progress bar widget based on course number
         progress_label = tk.Label(root, text="Canvas Export Progress:", font=label_font)
-        progress_label.pack(pady = 20)
+        progress_label.pack(pady=20)
         progress_var = tk.DoubleVar()
         progress_bar = Progressbar(root, length=700, mode="determinate", variable=progress_var)
         progress_bar.pack()
 
         # Text widget to display stdout print statements
         console_text = scrolledtext.ScrolledText(root, wrap=tk.WORD)
-        console_text.pack(pady = 20)
-    
+        console_text.pack(pady=20)
+
         # Initialize Database Connection
         dbInit = initDatabase()
 
@@ -1149,17 +1161,17 @@ if __name__ == "__main__":
             downloadCourseHTML(API_URL, COOKIES_PATH)
 
         total_courses = 0
-        #calculate how many total courses of Paginated List 
-        for course in courses: 
+        # calculate how many total courses of Paginated List
+        for course in courses:
             total_courses += 1
-    
+
         course_index = 0
         for course in courses:
             # Simulate a progress bar update
             progress_percentage = (course_index / total_courses * 100)
             progress_var.set(progress_percentage)
             root.update_idletasks()
-       
+
             if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
                 continue
 
@@ -1176,8 +1188,7 @@ if __name__ == "__main__":
             print("  Getting modules and downloading module files")
             course_view.modules = findCourseModules(course, course_view)
 
-
-            if(COOKIES_PATH):
+            if (COOKIES_PATH):
                 print("  Downloading course home page")
                 downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
 
@@ -1188,25 +1199,25 @@ if __name__ == "__main__":
                 downloadCourseModulePages(API_URL, course_view, COOKIES_PATH)
 
                 print("  Downloading course announcements pages")
-                downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)   
+                downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)
 
                 print("  Downloading course discussion pages")
                 downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
 
             # Add course entry to database
-            addDBCourse(course,dbInit,cursInit)
+            addDBCourse(course, dbInit, cursInit)
 
             print("  Exporting all course data")
             exportAllCourseData(course_view)
             course_index += 1
 
         print("Exporting data from all courses combined as one file: "
-            "all_output.json")
+              "all_output.json")
         # Awful hack to make the JSON pretty. Decode it with Python stdlib json
         # module then re-encode with indentation
         json_str = json.dumps(json.loads(jsonpickle.encode(all_courses_views,
-                                                        unpicklable=False)),
-                            indent=4)
+                                                           unpicklable=False)),
+                              indent=4)
 
         all_output_path = os.path.join(DL_LOCATION, "all_output.json")
 
@@ -1216,9 +1227,8 @@ if __name__ == "__main__":
         print("\nProcess complete. All canvas data exported!")
         messagebox.showinfo("Success", "Data export completed!")
         completion_label = tk.Label(root, text="Canvas Export Complete!", font=label_font)
-        completion_label.pack(pady = 20)
+        completion_label.pack(pady=20)
 
-        
         input_file = 'output/all_output.json'
         output_file = 'output/sorted_output.json'
 
@@ -1245,8 +1255,6 @@ if __name__ == "__main__":
             print(f"Data sorted by '{sort_key}' and saved to '{output_file}'.")
         else:
             print(f"File '{input_file}' not found or empty.")
-        
-
 
 
     def export_button_click():
@@ -1255,11 +1263,12 @@ if __name__ == "__main__":
             export_thread = threading.Thread(target=export_data)
             export_thread.start()  # Proceed with exporting data in seperate thread once all fields are filled correctly
 
-    browse_button = tk.Button(root, text="Browse", font = font, command=browse_folder)
-    browse_button.pack(pady = 20)
 
-    export_button = tk.Button(root, text="Export Data", font = font, command=export_button_click)
-    export_button.pack(pady = 20)
+    browse_button = tk.Button(root, text="Browse", font=font, command=browse_folder)
+    browse_button.pack(pady=20)
+
+    export_button = tk.Button(root, text="Export Data", font=font, command=export_button_click)
+    export_button.pack(pady=20)
 
 # Run the GUI main loop
 root.mainloop()
