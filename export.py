@@ -1033,17 +1033,21 @@ def initCursor(mydb):
 
     return mycursor
 
+def createCourseTable(db,cursor):
+    cursor.execute("CREATE TABLE courses (courseID int,name varchar(100),start_at varchar(100),end_at varchar(100))")
+    db.commit()
+
 # Creates entry in the database with course information
 def addDBCourse(cview,db,cursor):
-
+    print(cview)
     id = cview.id
     name = cview.name
+    assignments = cview.get_assignments()
+    page_urls = getCoursePageUrls(cview)
     start_at = cview.start_at
     end_at = cview.end_at
 
-    #print(term, " THIS IS THE TERM IDK WHAT THAT IS ")
-
-    cursor.execute("INSERT INTO courses (courseID, name, start_at, end_at) VALUES (%s, %s, %s, %s)", (id,name,end_at,start_at))
+    cursor.execute("INSERT INTO courses (courseID, name, start_at, end_at\) VALUES (%s, %s, %s, %s, %s)", (id,name,end_at,start_at))
     db.commit()
 
     return
@@ -1116,6 +1120,10 @@ if __name__ == "__main__":
 
         # Initialize Database Cursor
         cursInit = initCursor(dbInit)
+
+        # Create table 
+
+        createCourseTable(dbInit, cursInit)
 
         # Redirect stdout to the text widget (Print statements will still show in console)
         # sys.stdout = RedirectText(console_text)
