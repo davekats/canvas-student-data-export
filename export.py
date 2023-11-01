@@ -23,7 +23,7 @@ import yaml
 import mysql.connector
 
 import shutil
-import sqlite3
+
 
 try:
     with open("credentials.yaml", 'r') as f:
@@ -1054,6 +1054,10 @@ def get_user_data(user_data):
     cur.execute('SELECT * FROM user_data WHERE user_id = ?', (user_data,))
     return cur.fetchone()
 
+def createCredentialsTable(db, cursor):
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS user_credentials (user_id int NOT NULL, api_url varchar(255), api_key varchar(255), cookies_path varchar(255), dl_location varchar(255))")
+    db.commit()
 
 if __name__ == "__main__":
     # Create a GUI window
@@ -1118,18 +1122,16 @@ if __name__ == "__main__":
         console_text = scrolledtext.ScrolledText(root, wrap=tk.WORD)
         console_text.pack(pady = 20)
 
-        # Connect to the SQLite database or create a new one if it doesn't exist
-        con = sqlite3.connect('user_data.db')
-        cur = con.cursor()
-
-        # Create a table to store user data if it doesn't exist
-        cur.execute("CREATE TABLE IF NOT EXISTS user_data(user_id int PRIMARY KEY, api_key varchar(255), api_url varchar(255), dl_location varchar(255), cookies_path varchar(255))")
-
         # Initialize Database Connection
         dbInit = initDatabase()
+        print("Database connection initialized.\n")
 
         # Initialize Database Cursor
         cursInit = initCursor(dbInit)
+
+        # Create tables
+        createCredentialsTable(dbInit, cursInit)
+        print("Credentials table created.\n")
 
         # Redirect stdout to the text widget (Print statements will still show in console)
         # sys.stdout = RedirectText(console_text)
@@ -1146,10 +1148,6 @@ if __name__ == "__main__":
         # Initialize a new Canvas object
         canvas = Canvas(API_URL, API_KEY)
 
-        # Insert values into table
-        cur.execute('INSERT OR REPLACE INTO user_data VALUES (?, ?, ?, ?, ?)',
-                       (USER_ID, API_URL, API_URL, DL_LOCATION, COOKIES_PATH))
-        con.commit()
 
         print("Creating output directory: " + DL_LOCATION + "\n")
         # Create directory if not present
@@ -1265,8 +1263,9 @@ if __name__ == "__main__":
         else:
             print(f"File '{input_file}' not found or empty.")
 
-        # Close the database connection
-        con.close()
+        # ====================================================
+        # Close the database connection?????
+
 
 
     def export_button_click():
