@@ -1049,15 +1049,19 @@ def addDBCourse(cview,db,cursor):
 
     return
 
-# Function to retrieve user data by user ID
-def get_user_data(user_data):
-    cur.execute('SELECT * FROM user_data WHERE user_id = ?', (user_data,))
-    return cur.fetchone()
-
+# Create Credentials table
 def createCredentialsTable(db, cursor):
     cursor.execute(
         "CREATE TABLE IF NOT EXISTS user_credentials (user_id int NOT NULL, api_url varchar(255), api_key varchar(255), cookies_path varchar(255), dl_location varchar(255))")
     db.commit()
+
+# Retrieve single user data by user ID
+def getCredentialData(cursor, user_id):
+    cursor.execute("SELECT * FROM user_credentials WHERE user_id = %s", (user_id,))
+    userCreds = cursor.fetchone()
+    print("Credentials loaded from table:")
+    print(userCreds)
+
 
 if __name__ == "__main__":
     # Create a GUI window
@@ -1132,6 +1136,11 @@ if __name__ == "__main__":
         # Create tables
         createCredentialsTable(dbInit, cursInit)
         print("Credentials table created.\n")
+
+        # Call the function with the user ID
+        user_id = USER_ID
+        getCredentialData(cursInit, user_id)
+
 
         # Redirect stdout to the text widget (Print statements will still show in console)
         # sys.stdout = RedirectText(console_text)
