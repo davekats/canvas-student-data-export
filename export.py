@@ -1052,7 +1052,7 @@ def addDBCourse(cview,db,cursor):
 # Create Credentials table
 def createCredentialsTable(db, cursor):
     cursor.execute(
-        "CREATE TABLE IF NOT EXISTS user_credentials (user_id int NOT NULL, api_url varchar(255), api_key varchar(255), cookies_path varchar(255), dl_location varchar(255))")
+        "CREATE TABLE IF NOT EXISTS user_credentials (user_id int NOT NULL, api_url varchar(255), api_key varchar(255), cookies_path varchar(255), dl_location varchar(255), PRIMARY KEY (api_key))")
     db.commit()
 
 # Retrieve single user data by user ID
@@ -1061,6 +1061,20 @@ def getCredentialData(cursor, user_id):
     userCreds = cursor.fetchone()
     print("Credentials loaded from table:")
     print(userCreds)
+
+# Insert or update single user data
+def addCredentialData(db, cursor, user_id, api_url, api_key, cookies_path, dl_location):
+    sql_query = ("INSERT INTO user_credentials (user_id, api_url, api_key, cookies_path, dl_location) "
+                 "VALUES (%s, %s, %s, %s, %s)"
+                 "ON DUPLICATE KEY UPDATE "
+                 "api_url = VALUES(api_url), "
+                 "api_key = VALUES(api_key), "
+                 "cookies_path = VALUES(cookies_path), "
+                 "dl_location = VALUES(dl_location)")
+    val = (user_id, api_url, api_key, cookies_path, dl_location)
+    cursor.execute(sql_query, val)
+    db.commit()
+    print(cursor.rowcount, "record inserted.")
 
 
 if __name__ == "__main__":
@@ -1137,9 +1151,17 @@ if __name__ == "__main__":
         createCredentialsTable(dbInit, cursInit)
         print("Credentials table created.\n")
 
+        # # Call the function with the user ID
+        # user_id = USER_ID
+        # getCredentialData(cursInit, user_id)
+
         # Call the function with the user ID
         user_id = USER_ID
-        getCredentialData(cursInit, user_id)
+        api_url = API_URL
+        api_key = API_KEY
+        cookies_path = COOKIES_PATH
+        dl_location = DL_LOCATION
+        addCredentialData(dbInit, cursInit, user_id, api_url, api_key, cookies_path, dl_location)
 
 
         # Redirect stdout to the text widget (Print statements will still show in console)
