@@ -1160,6 +1160,12 @@ if __name__ == "__main__":
         console_text = scrolledtext.ScrolledText(root, wrap=tk.WORD)
         console_text.pack(pady = 20)
 
+        # Initialize Database Connection
+        dbInit = initDatabase()
+        print("Database connection initialized.\n")
+
+        # Initialize Database Cursor
+        cursInit = initCursor(dbInit)
         # Create tables
         createCredentialsTable(dbInit, cursInit)
         print("Credentials table created.\n")
@@ -1322,7 +1328,7 @@ if __name__ == "__main__":
             USER_ID = user_id_entry.get()
             userCreds = getCredentialData(cursInit, USER_ID)
             if userCreds:
-                # Access Data returned from the Database 
+                # Access Data returned from the Database
                 user_id, api_url, api_key, cookies_path, dl_location = userCreds
                 print("Loaded form database - User ID:", user_id)
                 print("Loaded form database - API URL:", api_url)
