@@ -1011,6 +1011,17 @@ def validate_entry():
     
     return True
 
+
+# Validation function to check if the required User ID entry is empty to load in data
+def validate_user_id_entry():
+    user_id = user_id_entry.get()
+
+    if not user_id:
+        messagebox.showerror("Error", "User ID is required in order to load in data.")
+        return False
+    
+    return True
+
 def browse_folder():
     folder_path = filedialog.askdirectory()
     output_folder_entry.delete(0, tk.END)
@@ -1044,6 +1055,7 @@ def addDBCourse(cview,db,cursor):
 
     #print(term, " THIS IS THE TERM IDK WHAT THAT IS ")
 
+    # TODO Create table if it does not exist
     cursor.execute("INSERT INTO courses (courseID, name, start_at, end_at) VALUES (%s, %s, %s, %s)", (id,name,end_at,start_at))
     db.commit()
 
@@ -1061,6 +1073,7 @@ def getCredentialData(cursor, user_id):
     userCreds = cursor.fetchone()
     print("Credentials loaded from table:")
     print(userCreds)
+    return userCreds
 
 # Insert or update single user data
 def addCredentialData(db, cursor, user_id, api_url, api_key, cookies_path, dl_location):
@@ -1111,6 +1124,13 @@ if __name__ == "__main__":
     output_folder_entry = tk.Entry(root, font=font)
     output_folder_entry.pack()
 
+    # Initialize Database Connection
+    dbInit = initDatabase()
+    print("Database connection initialized.\n")
+
+    # Initialize Database Cursor
+    cursInit = initCursor(dbInit)
+
     def export_data():
         global API_URL
         global API_KEY
@@ -1140,13 +1160,6 @@ if __name__ == "__main__":
         console_text = scrolledtext.ScrolledText(root, wrap=tk.WORD)
         console_text.pack(pady = 20)
 
-        # Initialize Database Connection
-        dbInit = initDatabase()
-        print("Database connection initialized.\n")
-
-        # Initialize Database Cursor
-        cursInit = initCursor(dbInit)
-
         # Create tables
         createCredentialsTable(dbInit, cursInit)
         print("Credentials table created.\n")
@@ -1162,7 +1175,6 @@ if __name__ == "__main__":
         cookies_path = COOKIES_PATH
         dl_location = DL_LOCATION
         addCredentialData(dbInit, cursInit, user_id, api_url, api_key, cookies_path, dl_location)
-
 
         # Redirect stdout to the text widget (Print statements will still show in console)
         # sys.stdout = RedirectText(console_text)
@@ -1242,7 +1254,7 @@ if __name__ == "__main__":
                 downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
 
             # Add course entry to database
-            addDBCourse(course,dbInit,cursInit)
+            # addDBCourse(course,dbInit,cursInit)
 
             print("  Exporting all course data")
             exportAllCourseData(course_view)
@@ -1304,6 +1316,38 @@ if __name__ == "__main__":
         if (validate_entry()):
             export_thread = threading.Thread(target=export_data)
             export_thread.start()  # Proceed with exporting data in seperate thread once all fields are filled correctly
+    
+    def load_info_button_click():
+        if (validate_user_id_entry()):
+            USER_ID = user_id_entry.get()
+            userCreds = getCredentialData(cursInit, USER_ID)
+            if userCreds:
+                # Access Data returned from the Database 
+                user_id, api_url, api_key, cookies_path, dl_location = userCreds
+                print("Loaded form database - User ID:", user_id)
+                print("Loaded form database - API URL:", api_url)
+                print("Loaded from database - API Key:", api_key)
+                print("Loaded from database - Cookies Path:", cookies_path)
+                print("Loaded from database - Download Location:", dl_location)
+
+                #Update GUI Fields with Database Contents
+                canvas_url_entry.delete(0, "end")
+                canvas_url_entry.insert(0, api_url)
+            
+                api_key_entry.delete(0, "end")
+                api_key_entry.insert(0, api_key)
+
+                cookies_path_entry.delete(0, "end")
+                cookies_path_entry.insert(0, cookies_path)
+
+                output_folder_entry.delete(0, "end")
+                output_folder_entry.insert(0, dl_location)
+
+            else:
+                messagebox.showerror("Error", "User data not found in the table")
+    
+    load_button = tk.Button(root, text="Load Saved Data", font = font, command=load_info_button_click)
+    load_button.pack(pady = 20)
 
     browse_button = tk.Button(root, text="Browse", font = font, command=browse_folder)
     browse_button.pack(pady = 20)
