@@ -442,6 +442,26 @@ def findCoursePages(course):
 
     return page_views
 
+# Create a new Assignments table
+def createAssignmentsTable(db,cursor):
+
+   cursor.execute("CREATE TABLE assignments (assignID  int, courseID int,description varchar(10000))")
+
+   db.commit()
+   return
+
+# Add Course Assignment to the Assignments table 
+def addCourseAssignemeToDB(db,cursor,course,assignment):
+    #print(cview.get_assignments())
+    id = course.id
+    assignID = assignment.id
+    #title = assignment.title
+    description = assignment.description
+    #assigned_date = assignment.assigned_date
+    #due_date = assignment.due_date
+
+    cursor.execute("INSERT INTO assignments (courseID, assignID, description) VALUES ( %s, %s, %s)", (assignID,id,description))
+    db.commit()
 
 def findCourseAssignments(course):
     assignment_views = []
@@ -449,10 +469,17 @@ def findCourseAssignments(course):
     # Get all assignments
     assignments = course.get_assignments()
 
+    dbInit = initDatabase()
+
+    # Initialize Database Cursor
+    cursInit = initCursor(dbInit)
+ 
     try:
         for assignment in assignments:
             # Create a new assignment view
             assignment_view = assignmentView()
+
+            addCourseAssignemeToDB(dbInit,cursInit,course,assignment)
 
             # ID
             assignment_view.id = assignment.id if \
@@ -481,6 +508,8 @@ def findCourseAssignments(course):
             # Other URL (more up-to-date)
             assignment_view.updated_url = str(assignment.submissions_download_url).split("submissions?")[0] if \
                 hasattr(assignment, "submissions_download_url") else ""
+            
+
 
             try:
                 try:  # Download all submissions for entire class
@@ -551,9 +580,12 @@ def findCourseAssignments(course):
             assignment_views.append(assignment_view)
     except Exception as e:
         print("Skipping course assignments that gave the following error:")
+        addCourseAssignemeToDB(dbInit,cursInit,course,assignment)
         print(e)
 
     return assignment_views
+
+
 
 
 def findCourseAnnouncements(course):
@@ -564,7 +596,7 @@ def findCourseAnnouncements(course):
 
         for announcement in announcements:
             discussion_view = getDiscussionView(announcement)
-
+         
             announcement_views.append(discussion_view)
     except Exception as e:
         print("Skipping announcement that gave the following error:")
@@ -1033,24 +1065,44 @@ def initCursor(mydb):
 
     return mycursor
 
+# Deletes the current content within the Course table
+def dropCourseTable(db, cursor):
+    cursor.execute("DROP TABLE courses")
+    db.commit()
+
+# Deletes the current content within the Assignments table
+def dropAssignmentTable(db, cursor):
+    cursor.execute("DROP TABLE assignments")
+    db.commit()
+
+# Create a new course table
 def createCourseTable(db,cursor):
-    cursor.execute("CREATE TABLE courses (courseID int,name varchar(100),start_at varchar(100),end_at varchar(100))")
+
+    cursor.execute("CREATE TABLE courses (courseID int,name varchar(100),term varchar(500),course_code varchar(500),start_at varchar(100),end_at varchar(100))")
     db.commit()
 
 # Creates entry in the database with course information
 def addDBCourse(cview,db,cursor):
-    print(cview)
+
+    #print(cview.get_assignments())
     id = cview.id
     name = cview.name
-    assignments = cview.get_assignments()
-    page_urls = getCoursePageUrls(cview)
+    term = str(cview.term)
+    course_code = str(cview.course_code)
     start_at = cview.start_at
     end_at = cview.end_at
-
-    cursor.execute("INSERT INTO courses (courseID, name, start_at, end_at\) VALUES (%s, %s, %s, %s, %s)", (id,name,end_at,start_at))
+ 
+    print(term)
+    cursor.execute("INSERT INTO courses (courseID, name, term,course_code , start_at, end_at) VALUES (%s, %s, %s, %s, %s, %s)", (id,name,term,course_code,end_at,start_at))
     db.commit()
 
     return
+
+#def addDBAssignment(cview,db,cursor):
+#    assignments = cview.assignments
+#    print("THESE ARE THE ASSIGNMENTS")
+#    print(assignments)
+
 
 if __name__ == "__main__":
     # Create a GUI window
@@ -1121,9 +1173,17 @@ if __name__ == "__main__":
         # Initialize Database Cursor
         cursInit = initCursor(dbInit)
 
-        # Create table 
 
+        # Drop existing course table data
+        dropCourseTable(dbInit, cursInit)
+        dropAssignmentTable(dbInit, cursInit)
+       
+        # Create table 
         createCourseTable(dbInit, cursInit)
+
+        createAssignmentsTable(dbInit,cursInit)
+
+       
 
         # Redirect stdout to the text widget (Print statements will still show in console)
         # sys.stdout = RedirectText(console_text)
@@ -1175,6 +1235,7 @@ if __name__ == "__main__":
 
             all_courses_views.append(course_view)
 
+            print(course_view)
             print("  Downloading all files")
             downloadCourseFiles(course, course_view)
 
