@@ -24,6 +24,7 @@ import mysql.connector
 
 import shutil
 
+
 try:
     with open("credentials.yaml", 'r') as f:
         credentials = yaml.full_load(f)
@@ -908,7 +909,7 @@ def downloadCourseModulePages(api_url, course_view, cookies_path):
                 # Download the module page.
                 if not os.path.exists(module_item_dir):
                     download_page(item.url, cookies_path, items_dir, filename)
-                    flag_file_if_needed(flag_file_if_needed(download_page(item.url, cookies_path, items_dir, filename)))
+                    # flag_file_if_needed(flag_file_if_needed(download_page(item.url, cookies_path, items_dir, filename)))
 
 
 def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
@@ -948,7 +949,7 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path):
             # Download assignment page, this usually has instructions and etc.
             if not os.path.exists(announcement_page_dir):
                 download_page(announcements.url + "/page-" + str(i+1), cookies_path, announce_dir, filename)
-                flag_file_if_needed(download_page)
+                # flag_file_if_needed(download_page)
 
 def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
     if (cookies_path == "" or len(course_view.discussions) == 0):
@@ -987,7 +988,7 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path):
             # Download assignment page, this usually has instructions and etc.
             if not os.path.exists(discussion_page_dir):
                 download_page(discussion.url + "/page-" + str(i+1), cookies_path, discussion_dir, filename)
-                flag_file_if_needed(download_page)
+                # flag_file_if_needed(download_page)
 
 # Function to load JSON data from a file
 def loadJsonFile(file_path):
@@ -1042,6 +1043,17 @@ def validate_entry():
     
     return True
 
+
+# Validation function to check if the required User ID entry is empty to load in data
+def validate_user_id_entry():
+    user_id = user_id_entry.get()
+
+    if not user_id:
+        messagebox.showerror("Error", "User ID is required in order to load in data.")
+        return False
+    
+    return True
+
 def browse_folder():
     folder_path = filedialog.askdirectory()
     output_folder_entry.delete(0, tk.END)
@@ -1091,17 +1103,43 @@ def addDBCourse(cview,db,cursor):
     course_code = str(cview.course_code)
     start_at = cview.start_at
     end_at = cview.end_at
+
  
     print(term)
     cursor.execute("INSERT INTO courses (courseID, name, term,course_code , start_at, end_at) VALUES (%s, %s, %s, %s, %s, %s)", (id,name,term,course_code,end_at,start_at))
+
     db.commit()
 
     return
 
-#def addDBAssignment(cview,db,cursor):
-#    assignments = cview.assignments
-#    print("THESE ARE THE ASSIGNMENTS")
-#    print(assignments)
+# Create Credentials table
+def createCredentialsTable(db, cursor):
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS user_credentials (user_id int NOT NULL, api_url varchar(255), api_key varchar(255), cookies_path varchar(255), dl_location varchar(255), PRIMARY KEY (api_key))")
+    db.commit()
+
+# Retrieve single user data by user ID
+def getCredentialData(cursor, user_id):
+    cursor.execute("SELECT * FROM user_credentials WHERE user_id = %s", (user_id,))
+    userCreds = cursor.fetchone()
+    print("Credentials loaded from table:")
+    print(userCreds)
+    return userCreds
+
+# Insert or update single user data
+def addCredentialData(db, cursor, user_id, api_url, api_key, cookies_path, dl_location):
+    sql_query = ("INSERT INTO user_credentials (user_id, api_url, api_key, cookies_path, dl_location) "
+                 "VALUES (%s, %s, %s, %s, %s)"
+                 "ON DUPLICATE KEY UPDATE "
+                 "api_url = VALUES(api_url), "
+                 "api_key = VALUES(api_key), "
+                 "cookies_path = VALUES(cookies_path), "
+                 "dl_location = VALUES(dl_location)")
+    val = (user_id, api_url, api_key, cookies_path, dl_location)
+    cursor.execute(sql_query, val)
+    db.commit()
+    print(cursor.rowcount, "record inserted.")
+
 
 
 if __name__ == "__main__":
@@ -1138,6 +1176,13 @@ if __name__ == "__main__":
     output_folder_entry = tk.Entry(root, font=font)
     output_folder_entry.pack()
 
+    # Initialize Database Connection
+    dbInit = initDatabase()
+    print("Database connection initialized.\n")
+
+    # Initialize Database Cursor
+    cursInit = initCursor(dbInit)
+
     def export_data():
         global API_URL
         global API_KEY
@@ -1166,12 +1211,28 @@ if __name__ == "__main__":
         # Text widget to display stdout print statements
         console_text = scrolledtext.ScrolledText(root, wrap=tk.WORD)
         console_text.pack(pady = 20)
-    
+
         # Initialize Database Connection
         dbInit = initDatabase()
+        print("Database connection initialized.\n")
 
         # Initialize Database Cursor
         cursInit = initCursor(dbInit)
+        # Create tables
+        createCredentialsTable(dbInit, cursInit)
+        print("Credentials table created.\n")
+
+        # # Call the function with the user ID
+        # user_id = USER_ID
+        # getCredentialData(cursInit, user_id)
+
+        # Call the function with the user ID
+        user_id = USER_ID
+        api_url = API_URL
+        api_key = API_KEY
+        cookies_path = COOKIES_PATH
+        dl_location = DL_LOCATION
+        addCredentialData(dbInit, cursInit, user_id, api_url, api_key, cookies_path, dl_location)
 
 
         # Drop existing course table data
@@ -1199,6 +1260,7 @@ if __name__ == "__main__":
 
         # Initialize a new Canvas object
         canvas = Canvas(API_URL, API_KEY)
+
 
         print("Creating output directory: " + DL_LOCATION + "\n")
         # Create directory if not present
@@ -1263,7 +1325,7 @@ if __name__ == "__main__":
                 downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
 
             # Add course entry to database
-            addDBCourse(course,dbInit,cursInit)
+            # addDBCourse(course,dbInit,cursInit)
 
             print("  Exporting all course data")
             exportAllCourseData(course_view)
@@ -1314,7 +1376,9 @@ if __name__ == "__main__":
             print(f"Data sorted by '{sort_key}' and saved to '{output_file}'.")
         else:
             print(f"File '{input_file}' not found or empty.")
-        
+
+        # ====================================================
+        # Close the database connection?????
 
 
 
@@ -1323,6 +1387,38 @@ if __name__ == "__main__":
         if (validate_entry()):
             export_thread = threading.Thread(target=export_data)
             export_thread.start()  # Proceed with exporting data in seperate thread once all fields are filled correctly
+    
+    def load_info_button_click():
+        if (validate_user_id_entry()):
+            USER_ID = user_id_entry.get()
+            userCreds = getCredentialData(cursInit, USER_ID)
+            if userCreds:
+                # Access Data returned from the Database
+                user_id, api_url, api_key, cookies_path, dl_location = userCreds
+                print("Loaded form database - User ID:", user_id)
+                print("Loaded form database - API URL:", api_url)
+                print("Loaded from database - API Key:", api_key)
+                print("Loaded from database - Cookies Path:", cookies_path)
+                print("Loaded from database - Download Location:", dl_location)
+
+                #Update GUI Fields with Database Contents
+                canvas_url_entry.delete(0, "end")
+                canvas_url_entry.insert(0, api_url)
+            
+                api_key_entry.delete(0, "end")
+                api_key_entry.insert(0, api_key)
+
+                cookies_path_entry.delete(0, "end")
+                cookies_path_entry.insert(0, cookies_path)
+
+                output_folder_entry.delete(0, "end")
+                output_folder_entry.insert(0, dl_location)
+
+            else:
+                messagebox.showerror("Error", "User data not found in the table")
+    
+    load_button = tk.Button(root, text="Load Saved Data", font = font, command=load_info_button_click)
+    load_button.pack(pady = 20)
 
     browse_button = tk.Button(root, text="Browse", font = font, command=browse_folder)
     browse_button.pack(pady = 20)
