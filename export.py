@@ -1147,26 +1147,65 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.geometry("900x700")
     root.title("Canvas Student Data Export Tool")
-    font = ("Helvetica", 22)
-    label_font = ("Helvetica", 24, "bold")
+    font = ("Helvetica", 18)
+    label_font = ("Helvetica", 20, "bold")
 
     # Create and place GUI elements
+    user_id_label = tk.Label(root, text="Canvas User ID:", font=label_font)
+    user_id_label.pack()
+    required_label = tk.Label(root, text= "* required", fg="red")
+    required_label.pack()
+    user_id_entry = tk.Entry(root, font=font)
+    user_id_entry.pack()
+
+    def load_info_button_click():
+        if (validate_user_id_entry()):
+            USER_ID = user_id_entry.get()
+            userCreds = getCredentialData(cursInit, USER_ID)
+            if userCreds:
+                # Access Data returned from the Database
+                user_id, api_url, api_key, cookies_path, dl_location = userCreds
+                print("Loaded form database - User ID:", user_id)
+                print("Loaded form database - API URL:", api_url)
+                print("Loaded from database - API Key:", api_key)
+                print("Loaded from database - Cookies Path:", cookies_path)
+                print("Loaded from database - Download Location:", dl_location)
+
+                #Update GUI Fields with Database Contents
+                canvas_url_entry.delete(0, "end")
+                canvas_url_entry.insert(0, api_url)
+            
+                api_key_entry.delete(0, "end")
+                api_key_entry.insert(0, api_key)
+
+                cookies_path_entry.delete(0, "end")
+                cookies_path_entry.insert(0, cookies_path)
+
+                output_folder_entry.delete(0, "end")
+                output_folder_entry.insert(0, dl_location)
+
+            else:
+                messagebox.showerror("Error", "User data not found in the table")
+
+    load_button = tk.Button(root, text="Load Saved Data", font = font, command=load_info_button_click)
+    load_button.pack(pady = 20)
+    load_button.configure(bg="#999999")
+
     canvas_url_label = tk.Label(root, text="Canvas Base URL:", font=label_font)
     canvas_url_label.pack()
+    required_label = tk.Label(root, text= "* required", fg="red")
+    required_label.pack()
     canvas_url_entry = tk.Entry(root, font=font)
     canvas_url_entry.pack()
 
     api_key_label = tk.Label(root, text="API Key:", font=label_font)
     api_key_label.pack()
+    required_label = tk.Label(root, text= "* required", fg="red")
+    required_label.pack()
     api_key_entry = tk.Entry(root, font=font)
     api_key_entry.pack()
 
-    user_id_label = tk.Label(root, text="Canvas User ID:", font=label_font)
-    user_id_label.pack()
-    user_id_entry = tk.Entry(root, font=font)
-    user_id_entry.pack()
-
-    cookies_path_label = tk.Label(root, text="Cookies Path (optional):", font=label_font)
+    cookies_path_label = tk.Label(root, text="Cookies Path:", font=label_font)
     cookies_path_label.pack()
     cookies_path_entry = tk.Entry(root, font=font)
     cookies_path_entry.pack()
@@ -1387,44 +1426,14 @@ if __name__ == "__main__":
         if (validate_entry()):
             export_thread = threading.Thread(target=export_data)
             export_thread.start()  # Proceed with exporting data in seperate thread once all fields are filled correctly
-    
-    def load_info_button_click():
-        if (validate_user_id_entry()):
-            USER_ID = user_id_entry.get()
-            userCreds = getCredentialData(cursInit, USER_ID)
-            if userCreds:
-                # Access Data returned from the Database
-                user_id, api_url, api_key, cookies_path, dl_location = userCreds
-                print("Loaded form database - User ID:", user_id)
-                print("Loaded form database - API URL:", api_url)
-                print("Loaded from database - API Key:", api_key)
-                print("Loaded from database - Cookies Path:", cookies_path)
-                print("Loaded from database - Download Location:", dl_location)
-
-                #Update GUI Fields with Database Contents
-                canvas_url_entry.delete(0, "end")
-                canvas_url_entry.insert(0, api_url)
-            
-                api_key_entry.delete(0, "end")
-                api_key_entry.insert(0, api_key)
-
-                cookies_path_entry.delete(0, "end")
-                cookies_path_entry.insert(0, cookies_path)
-
-                output_folder_entry.delete(0, "end")
-                output_folder_entry.insert(0, dl_location)
-
-            else:
-                messagebox.showerror("Error", "User data not found in the table")
-    
-    load_button = tk.Button(root, text="Load Saved Data", font = font, command=load_info_button_click)
-    load_button.pack(pady = 20)
 
     browse_button = tk.Button(root, text="Browse", font = font, command=browse_folder)
     browse_button.pack(pady = 20)
+    browse_button.configure(bg="#999999")
 
     export_button = tk.Button(root, text="Export Data", font = font, command=export_button_click)
     export_button.pack(pady = 20)
+    export_button.configure(bg="#90EE90")
 
 # Run the GUI main loop
 root.mainloop()
