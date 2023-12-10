@@ -1079,12 +1079,12 @@ def initCursor(mydb):
 
 # Deletes the current content within the Course table
 def dropCourseTable(db, cursor):
-    cursor.execute("DROP TABLE courses")
+    cursor.execute("DROP TABLE if EXISTS courses")
     db.commit()
 
 # Deletes the current content within the Assignments table
 def dropAssignmentTable(db, cursor):
-    cursor.execute("DROP TABLE assignments")
+    cursor.execute("DROP TABLE if EXISTS assignments")
     db.commit()
 
 # Create a new course table
