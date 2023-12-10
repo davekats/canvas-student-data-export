@@ -53,6 +53,17 @@ You can install these dependencies using
 AND
 `npm i`
 
+## You will need to install MySQL to use a local MySQL Database.
+
+MySQL: https://dev.mysql.com/downloads/installer/
+Instruction Guide: https://www.prisma.io/dataguide/mysql/setting-up-a-local-mysql-database
+Please be advised that the default user/pass is set to root/root. It is advised that you change this within the python database initialization to your own credentials.
+
+`host="{local hostname}",`
+`user="{local username}",`
+`passwd="{local password}",`
+
+
 ## Additions
 `pip3 install mysql-connector-python`
 
