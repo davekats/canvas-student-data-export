@@ -5,7 +5,7 @@ import string
 
 # external
 from canvasapi import Canvas
-from canvasapi.exceptions import ResourceDoesNotExist, Unauthorized
+from canvasapi.exceptions import ResourceDoesNotExist, Unauthorized, Forbidden
 
 from singlefile import download_page
 
@@ -453,7 +453,7 @@ def findCourseAssignments(course):
                 try: # Download all submissions for entire class
                     submissions = assignment.get_submissions()
                     submissions[0] # Trigger Unauthorized if not allowed
-                except Unauthorized:
+                except (Unauthorized, Forbidden):
                     print("Not authorized to download entire class submissions for this assignment")
                     # Download submission for this user only
                     submissions = [assignment.get_submission(USER_ID)]
@@ -506,9 +506,9 @@ def findCourseAssignments(course):
                         else:
                             for attachment in submission.attachments:
                                 attach_view = attachmentView()
-                                attach_view.url = attachment["url"]
-                                attach_view.id = attachment["id"]
-                                attach_view.filename = attachment["filename"]
+                                attach_view.url = attachment.url
+                                attach_view.id = attachment.id
+                                attach_view.filename = attachment.filename
                                 sub_view.attachments.append(attach_view)
                         assignment_view.submissions.append(sub_view)
                 except Exception as e:
