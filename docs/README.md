@@ -40,6 +40,9 @@ Example:
 
 ## Dependencies
 To run the program, you will need the following dependencies:  
+
+Install [Deno](https://docs.deno.com/runtime/getting_started/installation/).
+
 `pip install requests`  
 `pip install jsonpickle`  
 `pip install canvasapi`  
