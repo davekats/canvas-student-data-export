@@ -1,6 +1,6 @@
 from subprocess import run
 
-SINGLEFILE_BINARY_PATH = "./node_modules/single-file/cli/single-file"
+SINGLEFILE_BINARY_PATH = "./node_modules/single-file-cli/single-file"
 CHROME_PATH = "C:/Program Files/Google\ Chrome/Application/chrome.exe" #Uncomment this and set your browser exe if it can't find yours.
 
 def addQuotes(str):
@@ -19,7 +19,7 @@ def download_page(url, cookies_path, output_path, output_name_template = ""):
         args.append("--filename-template=" + addQuotes(output_name_template))
 
     try:
-        run("node " + " ".join(args), shell=True)
+        run(" ".join(args), shell=True)
     except Exception as e:
         print("Was not able to save the URL " + url + " using singlefile. The reported error was " + e.strerror)
 
