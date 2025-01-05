@@ -49,7 +49,7 @@ Install [Deno](https://docs.deno.com/runtime/getting_started/installation/).
 `pip install python-dateutil`  
 `pip install PyYAML`
 
-`npm i github:gildas-lormeau/SingleFile`
+`npm i github:gildas-lormeau/single-file-cli`
 
 You can install these dependencies using
 `pip install -r requirements.txt` 
