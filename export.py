@@ -946,7 +946,10 @@ if __name__ == "__main__":
     all_courses_views = []
 
     print("Getting list of all courses\n")
-    courses = canvas.get_courses(include="term")
+    courses_list = [
+        canvas.get_courses(enrollment_state = "active", include="term"),
+        canvas.get_courses(enrollment_state = "completed", include="term")
+    ]
 
     skip = set(COURSES_TO_SKIP)
 
@@ -955,41 +958,42 @@ if __name__ == "__main__":
         print("  Downloading course list page")
         downloadCourseHTML(API_URL, COOKIES_PATH)
 
-    for course in courses:
-        if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
-            continue
+    for courses in courses_list:
+        for course in courses:
+            if course.id in skip or not hasattr(course, "name") or not hasattr(course, "term"):
+                continue
 
-        course_view = getCourseView(course)
+            course_view = getCourseView(course)
 
-        all_courses_views.append(course_view)
+            all_courses_views.append(course_view)
 
-        print("  Downloading all files")
-        downloadCourseFiles(course, course_view)
+            print("  Downloading all files")
+            downloadCourseFiles(course, course_view)
 
-        print("  Downloading submission attachments")
-        download_submission_attachments(course, course_view)
+            print("  Downloading submission attachments")
+            download_submission_attachments(course, course_view)
 
-        print("  Getting modules and downloading module files")
-        course_view.modules = findCourseModules(course, course_view)
+            print("  Getting modules and downloading module files")
+            course_view.modules = findCourseModules(course, course_view)
 
-        if(COOKIES_PATH):
-            print("  Downloading course home page")
-            downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
+            if(COOKIES_PATH):
+                print("  Downloading course home page")
+                downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
 
-            print("  Downloading assignment pages")
-            downloadAssignmentPages(API_URL, course_view, COOKIES_PATH)
+                print("  Downloading assignment pages")
+                downloadAssignmentPages(API_URL, course_view, COOKIES_PATH)
 
-            print("  Downloading course module pages")
-            downloadCourseModulePages(API_URL, course_view, COOKIES_PATH)
+                print("  Downloading course module pages")
+                downloadCourseModulePages(API_URL, course_view, COOKIES_PATH)
 
-            print("  Downloading course announcements pages")
-            downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)   
+                print("  Downloading course announcements pages")
+                downloadCourseAnnouncementPages(API_URL, course_view, COOKIES_PATH)   
 
-            print("  Downloading course discussion pages")
-            downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
+                print("  Downloading course discussion pages")
+                downloadCourseDiscussionPages(API_URL, course_view, COOKIES_PATH)
 
-        print("  Exporting all course data")
-        exportAllCourseData(course_view)
+            print("  Exporting all course data")
+            exportAllCourseData(course_view)
 
     print("Exporting data from all courses combined as one file: "
           "all_output.json")
