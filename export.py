@@ -720,6 +720,23 @@ def downloadCourseHomePageHTML(api_url, course_view, cookies_path):
     if not os.path.exists(homepage_path):
         download_page(api_url + "/courses/" + str(course_view.course_id), cookies_path, dl_dir, "homepage.html")
 
+def downloadCourseGradesHTML(api_url, course_view, cookies_path):
+    if(cookies_path == ""):
+        return
+
+    dl_dir = os.path.join(DL_LOCATION, course_view.term,
+                         course_view.course_code)
+
+    # Create directory if not present
+    if not os.path.exists(dl_dir):
+        os.makedirs(dl_dir)
+
+    grades_path = os.path.join(dl_dir, "grades.html")
+
+    # Downloads the course home page.
+    if not os.path.exists(grades_path):
+        download_page(api_url + "/courses/" + str(course_view.course_id) + "/grades", cookies_path, dl_dir, "grades.html")
+
 def downloadAssignmentPages(api_url, course_view, cookies_path):
     if(cookies_path == "" or len(course_view.assignments) == 0):
         return
@@ -979,6 +996,9 @@ if __name__ == "__main__":
             if(COOKIES_PATH):
                 print("  Downloading course home page")
                 downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
+
+                print("  Downloading course grades")
+                downloadCourseGradesHTML(API_URL, course_view, COOKIES_PATH)
 
                 print("  Downloading assignment pages")
                 downloadAssignmentPages(API_URL, course_view, COOKIES_PATH)
