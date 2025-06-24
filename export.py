@@ -1,14 +1,15 @@
 # built in
 import json
 import os
+import itertools
+import re
 import string
 
 # external
+from bs4 import BeautifulSoup
 from canvasapi import Canvas
 from canvasapi.exceptions import ResourceDoesNotExist, Unauthorized, Forbidden
-
 from singlefile import download_page
-
 import dateutil.parser
 import jsonpickle
 import requests
@@ -736,6 +737,46 @@ def downloadCourseGradesHTML(api_url, course_view, cookies_path):
     # Downloads the course home page.
     if not os.path.exists(grades_path):
         download_page(api_url + "/courses/" + str(course_view.course_id) + "/grades", cookies_path, dl_dir, "grades.html")
+
+        with open(grades_path, "r+t", encoding="utf-8") as grades_file:
+            grades_html = BeautifulSoup(grades_file, "html.parser")
+
+            button = grades_html.select_one("#show_all_details_button")
+            if button is not None:
+                button_class = button.get_attribute_list("class", [])
+                if "showAll" not in button_class:
+                    button_class.append("showAll")
+                button["class"] = button_class
+                button.string = "Hide All Details" # Unfortunately this cannot handle i18n.
+
+            assignments = grades_html.select("tr.student_assignment.editable")
+            for assignment in assignments:
+                assignment_id = str(assignment.get("id", "")).removeprefix("submission_")
+                muted = bool(assignment.get("data-muted", False))
+                if not muted:
+                    for element in itertools.chain(
+                        assignment.select(f"#comments_thread_{assignment_id}"),
+                        assignment.select(f"#rubric_{assignment_id}"),
+                        assignment.select(f"#grade_info_{assignment_id}"),
+                        assignment.select(f"#final_grade_info_{assignment_id}"),
+                        assignment.select(f".parent_assignment_id_{assignment_id}"),
+                    ):
+                        if element is None:
+                            continue
+                        element_style = str(element.get("style", ""))
+                        re.sub(r"display:\s*none", "", element_style)
+                        element["style"] = element_style
+
+                    assignment_arrow = assignment.select_one(f"#parent_assignment_id_{assignment_id} i")
+                    if assignment_arrow is not None:
+                        assignment_arrow_class = assignment_arrow.get_attribute_list("class", [])
+                        assignment_arrow_class.remove("icon-arrow-open-end")
+                        assignment_arrow_class.append("icon-arrow-open-down")
+                        assignment_arrow["class"] = assignment_arrow_class
+
+            grades_file.seek(0)
+            grades_file.write(grades_html.prettify(formatter="html"))
+            grades_file.truncate()
 
 def downloadAssignmentPages(api_url, course_view, cookies_path):
     if(cookies_path == "" or len(course_view.assignments) == 0):
