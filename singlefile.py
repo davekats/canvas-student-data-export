@@ -6,7 +6,7 @@ CHROME_PATH = R"C:/Program Files/Google\ Chrome/Application/chrome.exe" #Uncomme
 def addQuotes(str):
     return "\"" + str.strip("\"") + "\""
 
-def download_page(url, cookies_path, output_path, output_name_template = ""):
+def download_page(url, cookies_path, output_path, output_name_template = "", additional_args = ()):
     args = [
         addQuotes(SINGLEFILE_BINARY_PATH),
         #"--browser-executable-path=" + addQuotes(CHROME_PATH.strip("\"")), #Uncomment this and set your browser exe if it can't find yours.
@@ -17,6 +17,8 @@ def download_page(url, cookies_path, output_path, output_name_template = ""):
 
     if(output_name_template != ""):
         args.append("--filename-template=" + addQuotes(output_name_template))
+
+    args.extend(additional_args)
 
     try:
         cmd = " ".join(args)
