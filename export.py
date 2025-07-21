@@ -1012,16 +1012,16 @@ if __name__ == "__main__":
     os.makedirs(DL_LOCATION, exist_ok=True)
  
     all_courses_views = []
- 
+
     print("Getting list of all courses\n")
     courses_list = [
         canvas.get_courses(enrollment_state = "active", include="term"),
         canvas.get_courses(enrollment_state = "completed", include="term")
     ]
- 
+
     skip = set(COURSES_TO_SKIP)
  
-
+ 
     if COOKIES_PATH and args.singlefile:
         print("  Downloading course list page")
         downloadCourseHTML(API_URL, COOKIES_PATH)
@@ -1068,8 +1068,6 @@ if __name__ == "__main__":
 
     print("Exporting data from all courses combined as one file: "
           "all_output.json")
-    # Awful hack to make the JSON pretty. Decode it with Python stdlib json
-    # module then re-encode with indentation
     json_str = jsonpickle.encode(all_courses_views, unpicklable=False, indent=4)
 
     all_output_path = os.path.join(DL_LOCATION, "all_output.json")
