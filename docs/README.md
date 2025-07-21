@@ -1,87 +1,138 @@
 # Introduction
-The Canvas Student Data Export Tool can export nearly all of a student's data from Instructure Canvas Learning Management System (Canvas LMS).
+
+The Canvas Student Data Export Tool exports nearly all of a student's data from the Instructure Canvas Learning Management System (Canvas LMS).  
 This is useful when you are graduating or leaving your college or university, and would like to have a backup of all the data you had in canvas.
 
-The tool exports all of the following data:
-- Course Assignments
+The tool exports the following data:
+- Course Assignments (including submissions and attachments)
 - Course Announcements
 - Course Discussions
 - Course Pages
 - Course Files
 - Course Modules
-- SingleFile HTML of Assignments, Announcements, Discussions, Modules
+- (Optional) HTML snapshots of:
+    - Course Home Page
+    - Grades Page
+    - Assignments
+    - Announcements
+    - Discussions
+    - Modules
 
+Data is saved in JSON (and optionally HTML) format and organized into folders by academic term and course.
 
-The tool will export your data in JSON format, and will organize it nicely into folders named for every term of every year.
-Example:
-- Fall 2013
-  - Econ 101
-    - course files
-    - modules
-    - Econ 101.json
-  - English 101
-    - course files
-    - modules
-    - English 101.json
-- Fall 2014
-- Fall 2015
-- Fall 2016
-- Spring 2014
-- Spring 2015
-- Spring 2016
-- Spring 2017
-- Winter 2014
-- Winter 2015
-- Winter 2016
-- Winter 2017
+Example output structure:
+- Fall 2023
+  - CS 101
+    - announcements/
+      - First Announcement/
+        - announcement_1.html
+      - announcement_list.html
+    - assignments/
+      - Sample Assignment/
+        - assignment.html
+        - submission.html
+      - assignment_list.html
+    - course files/
+      - file_1.docx
+      - file_2.png
+    - discussions/
+      - Sample Discussion
+        - discussion_1.html
+      - discussion_list.html
+    - modules/
+      - Sample Module
+        - Sample Assignment.html
+        - Sample Discussion.html
+        - Sample Page.html
+        - Sample Quiz.html
+      - modules_list.html
+    - grades.html
+    - homepage.html
+    - CS 101.json
+  - ENGL 101
+    - ...
+- Spring 2024
+  - ...
 - all_output.json
 
 # Getting Started
 
 ## Dependencies
-To run the program, you will need the following dependencies:  
+- Python 3.8 or newer
+- Node.js 16 or newer (only needed for HTML snapshots)
 
-Install [Deno](https://docs.deno.com/runtime/getting_started/installation/).
+1.  **Install Python dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-`pip install requests`  
-`pip install jsonpickle`  
-`pip install canvasapi`  
-`pip install python-dateutil`  
-`pip install PyYAML`
-
-`npm i github:gildas-lormeau/single-file-cli`
-
-You can install these dependencies using
-`pip install -r requirements.txt` 
-AND
-`npm i`
-
-Then run from the command line:
-`python export.py`
+2.  **(Optional) Install SingleFile for HTML snapshots:**
+    This step requires Node.js.
+    ```bash
+    npm install
+    ```
 
 ## Configuration
-These are the configuration parameters for the program:
-- Canvas API URL - this is the URL of your institution, for example `https://example.instructure.com`
-- Canvas API key - this can be created by going to Canvas and navigating to `Account` > `Settings` > `Approved Integrations` > `New Access Token`
-- Canvas User ID - this can be found at `https://example.instructure.com/api/v1/users/self` in the `id` field
-- Path to Cookies File - file needs to be in netscape format, you can get your cookies via a tool like "Get cookies.txt Clean" on chrome. This can also be left blank if an html images are unwanted.
-- Directory in which to download course information to (will be created if not present)
-- List of Course IDs that should be skipped
 
-If single file fails to find your browser, you can set a path in singlefile.py. If you also want to run additional singlefile arguments that can also be done there.
+To use the tool, you must create a `credentials.yaml` file in the project root. You can also specify a different path using the `-c` or `--config` command-line option.
 
-### Loading credentials from a file
-To avoid manually entering credentials every time you run the program, you can create a `credentials.yaml` file in the same directory as the script that has the following fields:
+Create the `credentials.yaml` file with the following content:
 
 ```yaml
-API_URL: < URL of your institution >
-API_KEY: < API Key from Canvas >
-USER_ID: < User ID from Canvas >
-COOKIES_PATH: < Path to cookies file >
+# The URL of your Canvas instance (e.g., https://your-school.instructure.com)
+API_URL: https://example.instructure.com
+# Your Canvas API token
+API_KEY: <Your Canvas API token>
+# Your Canvas User ID
+USER_ID: 123456
+# Path to your browser cookies file (Netscape format).
+# This is only required when using the --singlefile flag.
+COOKIES_PATH: ./cookies.txt
+# (Optional) Path to your Chrome/Chromium executable if SingleFile cannot find it.
+# CHROME_PATH: C:\Program Files\Google\Chrome\Application\chrome.exe
+# (Optional) A list of course IDs to skip when exporting data.
+# COURSES_TO_SKIP:
+#   - 12345
+#   - 67890
 ```
 
-You can then run the script as normal:
-`python export.py`
+### Finding Your Credentials
+
+-   **`API_URL`**: Your institution's Canvas URL.
+-   **`API_KEY`**: In Canvas, go to `Account` > `Settings`, scroll down to `Approved Integrations`, and click `+ New Access Token`.
+-   **`USER_ID`**: After logging into Canvas, visit `https://<your-canvas-url>/api/v1/users/self`. Your browser will show a JSON response; find the `id` field.
+-   **`COOKIES_PATH`**: Required **only if** you use the `--singlefile` flag. To save complete HTML pages, you need your browser's cookies. Use a browser extension like "Get cookies.txt Clean" for Chrome to export them in Netscape format.
+-   **`CHROME_PATH`** (Optional): The script attempts to auto-detect Chrome/Chromium on Windows, macOS, and Linux. If it fails, you can specify the path here.
+-   **`COURSES_TO_SKIP`** (Optional): A list of course IDs to exclude from the export. To find a course ID, go to the course's homepage and look at the URL for the number that follows `/courses/`.
+
+## Running the Exporter
+
+Once your `credentials.yaml` is set up, run the script:
+
+```bash
+python export.py [options]
+```
+
+**Options:**
+
+| Flag                   | Description                                             | Default            |
+| ---------------------- | ------------------------------------------------------- | ------------------ |
+| `-c`, `--config <path>`  | Path to your YAML credentials file.                     | `credentials.yaml` |
+| `-o`, `--output <path>`  | Directory to store exported data.                       | `./output`         |
+| `--singlefile`         | Enable HTML snapshot capture with SingleFile.           | Disabled           |
+| `--version`            | Show the version of the tool and exit.                  | N/A                |
+
+**Example:**
+
+```bash
+# Run with default settings (uses ./credentials.yaml, outputs to ./output)
+python export.py
+
+# Run with a custom output directory and enable HTML snapshots
+python export.py -o /path/to/my-canvas-backup --singlefile
+```
 
 # Contribute
-I would love to see this script's functionality expanded and improved! I welcome all pull requests :) Thank you!
+
+I would love to see this script's functionality expanded and improved! I welcome all pull requests :)  
+Thank you!
