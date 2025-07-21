@@ -4,40 +4,38 @@ import os
 import itertools
 import re
 import string
+import argparse
+import sys
 
 # external
 from bs4 import BeautifulSoup
 from canvasapi import Canvas
 from canvasapi.exceptions import ResourceDoesNotExist, Unauthorized, Forbidden
-from singlefile import download_page
+from singlefile import download_page, override_chrome_path
 import dateutil.parser
 import jsonpickle
 import requests
 import yaml
 
-try:
-    with open("credentials.yaml", 'r') as f:
-        credentials = yaml.full_load(f)
-except OSError:
-    # Canvas API URL
-    API_URL = ""
-    # Canvas API key
-    API_KEY = ""
-    # My Canvas User ID
-    USER_ID = 0000000
-    # Browser Cookies File
-    COOKIES_PATH = ""
-else:
-    API_URL = credentials["API_URL"]
-    API_KEY = credentials["API_KEY"]
-    USER_ID = credentials["USER_ID"]
-    COOKIES_PATH = credentials["COOKIES_PATH"]
+def _load_credentials(path: str) -> dict:
+    """Return a dict with API_URL, API_KEY, USER_ID, COOKIES_PATH or empty dict if file missing."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return yaml.full_load(f) or {}
+    except FileNotFoundError:
+        return {}
+
+# Placeholder globals – will be overwritten in __main__ once we have parsed CLI args.
+API_URL = ""
+API_KEY = ""
+USER_ID = 0
+COOKIES_PATH = ""
 
 # Directory in which to download course information to (will be created if not
 # present)
 DL_LOCATION = "./output"
-# List of Course IDs that should be skipped (need to be integers)
-COURSES_TO_SKIP = [288290, 512033]
+# List of Course IDs that should be skipped
+COURSES_TO_SKIP = []
 
 DATE_TEMPLATE = "%B %d, %Y %I:%M %p"
 
@@ -962,43 +960,57 @@ if __name__ == "__main__":
 
     print("Welcome to the Canvas Student Data Export Tool\n")
 
-    if API_URL == "":
-        # Canvas API URL
-        print("We will need your organization's Canvas Base URL. This is "
-              "probably something like https://{schoolName}.instructure.com)")
-        API_URL = input("Enter your organization's Canvas Base URL: ")
+    parser = argparse.ArgumentParser(description="Export nearly all of a student's Canvas LMS data.")
+    parser.add_argument("-c", "--config", default="credentials.yaml", help="Path to YAML credentials file (default: credentials.yaml)")
+    parser.add_argument("-o", "--output", default="./output", help="Directory to store exported data (default: ./output)")
+    parser.add_argument("--singlefile", action="store_true", help="Enable HTML snapshot capture with SingleFile.")
+    parser.add_argument("--version", action="version", version="Canvas Student Data Export Tool 1.0")
 
-    if API_KEY == "":
-        # Canvas API key
-        print("\nWe will need a valid API key for your user. You can generate "
-              "one in Canvas once you are logged in.")
-        API_KEY = input("Enter a valid API key for your user: ")
+    args = parser.parse_args()
 
-    if USER_ID == 0000000:
-        # My Canvas User ID
-        print("\nWe will need your Canvas User ID. You can find this by "
-              "logging in to canvas and then going to this URL in the same "
-              "browser {yourCanvasBaseUrl}/api/v1/users/self")
-        USER_ID = input("Enter your Canvas User ID: ")
+    # Load credentials from YAML
+    creds = _load_credentials(args.config)
     
-    if COOKIES_PATH == "": 
-        # Cookies path
-        print("\nWe will need your browsers cookies file. This needs to be "
-              "exported using another tool. This needs to be a path to a file "
-              "formatted in the NetScape format. This can be left blank if an html "
-              "images aren't wanted. ")
-        COOKIES_PATH = input("Enter your cookies path: ")
+    # Validate credentials
+    required = ["API_URL", "API_KEY", "USER_ID"]
+    missing = [k for k in required if not creds.get(k)]
 
-    print("\nConnecting to canvas\n")
+    # COOKIES_PATH is required if singlefile is active, but it can be missing.
+    if args.singlefile and "COOKIES_PATH" not in creds:
+        missing.append("COOKIES_PATH")
+
+    if missing:
+        print(f"Error: {args.config} is missing required field(s): {', '.join(missing)}.")
+        print("Please create the YAML file with the following structure:\n"
+              "API_URL: https://<your>.instructure.com\n"
+              "API_KEY: <your key>\n"
+              "USER_ID: 123456\n"
+              "COOKIES_PATH: path/to/cookies.txt\n")
+        sys.exit(1)
+
+    # Populate globals expected throughout the script
+    API_URL = creds["API_URL"]
+    API_KEY = creds["API_KEY"]
+    USER_ID = creds["USER_ID"]
+    # Use .get() to safely access optional/conditionally required keys
+    COOKIES_PATH = creds.get("COOKIES_PATH", "")
+    COURSES_TO_SKIP = creds.get("COURSES_TO_SKIP", [])
+
+    chrome_path_override = creds.get("CHROME_PATH")
+    if chrome_path_override:
+        override_chrome_path(chrome_path_override)
+
+    # Update output directory
+    DL_LOCATION = args.output
+
+    print("\nConnecting to Canvas…\n")
 
     # Initialize a new Canvas object
     canvas = Canvas(API_URL, API_KEY)
-
-    print("Creating output directory: " + DL_LOCATION + "\n")
-    # Create directory if not present
-    if not os.path.exists(DL_LOCATION):
-        os.makedirs(DL_LOCATION)
-
+ 
+    print(f"Creating output directory: {DL_LOCATION}\n")
+    os.makedirs(DL_LOCATION, exist_ok=True)
+ 
     all_courses_views = []
 
     print("Getting list of all courses\n")
@@ -1010,7 +1022,7 @@ if __name__ == "__main__":
     skip = set(COURSES_TO_SKIP)
 
 
-    if (COOKIES_PATH):
+    if COOKIES_PATH and args.singlefile:
         print("  Downloading course list page")
         downloadCourseHTML(API_URL, COOKIES_PATH)
 
@@ -1032,7 +1044,7 @@ if __name__ == "__main__":
             print("  Getting modules and downloading module files")
             course_view.modules = findCourseModules(course, course_view)
 
-            if(COOKIES_PATH):
+            if COOKIES_PATH and args.singlefile:
                 print("  Downloading course home page")
                 downloadCourseHomePageHTML(API_URL, course_view, COOKIES_PATH)
 
@@ -1056,11 +1068,7 @@ if __name__ == "__main__":
 
     print("Exporting data from all courses combined as one file: "
           "all_output.json")
-    # Awful hack to make the JSON pretty. Decode it with Python stdlib json
-    # module then re-encode with indentation
-    json_str = json.dumps(json.loads(jsonpickle.encode(all_courses_views,
-                                                       unpicklable=False)),
-                          indent=4)
+    json_str = jsonpickle.encode(all_courses_views, unpicklable=False, indent=4)
 
     all_output_path = os.path.join(DL_LOCATION, "all_output.json")
 
