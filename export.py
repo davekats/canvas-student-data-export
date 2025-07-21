@@ -1020,8 +1020,8 @@ if __name__ == "__main__":
     ]
 
     skip = set(COURSES_TO_SKIP)
- 
- 
+
+
     if COOKIES_PATH and args.singlefile:
         print("  Downloading course list page")
         downloadCourseHTML(API_URL, COOKIES_PATH)
