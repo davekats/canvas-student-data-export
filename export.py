@@ -1226,7 +1226,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Populate globals expected throughout the script
-    API_URL = creds["API_URL"].strip()
+    API_URL = creds["API_URL"].strip().rstrip('/')
     API_KEY = creds["API_KEY"].strip()  # Remove leading/trailing whitespace which is a common issue
     USER_ID = creds["USER_ID"]
     # Use .get() to safely access optional/conditionally required keys
