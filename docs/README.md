@@ -101,7 +101,7 @@ COOKIES_PATH: ./cookies.txt
 -   **`API_URL`**: Your institution's Canvas URL.
 -   **`API_KEY`**: In Canvas, go to `Account` > `Settings`, scroll down to `Approved Integrations`, and click `+ New Access Token`.
 -   **`USER_ID`**: After logging into Canvas, visit `https://<your-canvas-url>/api/v1/users/self`. Your browser will show a JSON response; find the `id` field.
--   **`COOKIES_PATH`**: Required **only if** you use the `--singlefile` flag. To save complete HTML pages, you need your browser's cookies. Use a browser extension like "Get cookies.txt Clean" for Chrome to export them in Netscape format.
+-   **`COOKIES_PATH`**: Required **only if** you use the `--singlefile` flag. Browser cookies are needed to download complete HTML pages as if you were logged in. The script will now detect if your cookies are expired or invalid and will stop downloading HTML pages to prevent errors. For best results, log into Canvas and then export your cookies right before running the script. Use a browser extension like "Get cookies.txt Clean" for Chrome to export them in Netscape format.
 -   **`CHROME_PATH`** (Optional): The script attempts to auto-detect Chrome/Chromium on Windows, macOS, and Linux. If it fails, you can specify the path here.
 -   **`COURSES_TO_SKIP`** (Optional): A list of course IDs to exclude from the export. To find a course ID, go to the course's homepage and look at the URL for the number that follows `/courses/`.
 
@@ -115,12 +115,13 @@ python export.py [options]
 
 **Options:**
 
-| Flag                   | Description                                             | Default            |
-| ---------------------- | ------------------------------------------------------- | ------------------ |
-| `-c`, `--config <path>`  | Path to your YAML credentials file.                     | `credentials.yaml` |
-| `-o`, `--output <path>`  | Directory to store exported data.                       | `./output`         |
-| `--singlefile`         | Enable HTML snapshot capture with SingleFile.           | Disabled           |
-| `--version`            | Show the version of the tool and exit.                  | N/A                |
+| Flag                    | Description                                   | Default            |
+| ----------------------- | --------------------------------------------- | ------------------ |
+| `-c`, `--config <path>` | Path to your YAML credentials file.           | `credentials.yaml` |
+| `-o`, `--output <path>` | Directory to store exported data.             | `./output`         |
+| `--singlefile`          | Enable HTML snapshot capture with SingleFile. | Disabled           |
+| `-v`, `--verbose`       | Enable verbose output for debugging.          | Disabled           |
+| `--version`             | Show the version of the tool and exit.        | N/A                |
 
 **Example:**
 
@@ -132,7 +133,9 @@ python export.py
 python export.py -o /path/to/my-canvas-backup --singlefile
 ```
 
+After the export is complete, the tool will display a detailed summary of all the data that was successfully extracted, including counts of assignments, files, and pages, as well as any warnings or errors encountered.
+
 # Contribute
 
-I would love to see this script's functionality expanded and improved! I welcome all pull requests :)  
+I would love to see this script's functionality expanded and improved! I welcome all pull requests 🙂  
 Thank you!
