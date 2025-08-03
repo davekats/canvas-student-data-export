@@ -90,7 +90,7 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
             try:
                 with open(os.path.join(output_path, output_name_template), "r", encoding="utf-8") as f:
                     content = f.read()
-                
+
                 # More robust login page detection logic
                 login_indicators = [
                     "<title>Log in to Canvas</title>",
@@ -102,14 +102,20 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
                     # Clean up the invalid file
                     os.remove(os.path.join(output_path, output_name_template))
                     raise Exception("Authentication failed, downloaded a login page. Please update your cookies.")
-                
+
                 # If we succeed, break the loop
-                break 
-            except PermissionError:
+                break
+
+            # The file may not be available immediately when the SingleFile CLI
+            # returns, especially on Windows where chrome can still be
+            # flushing the content to disk. Treat this the same way we already
+            # treat a temporary file lock – wait a moment and retry.
+            except (PermissionError, FileNotFoundError):
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                 else:
-                    # Re-raise the exception on the last attempt
+                    # Re-raise the exception on the last attempt so that the
+                    # caller can handle it.
                     raise
 
         if verbose:
