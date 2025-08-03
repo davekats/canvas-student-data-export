@@ -2,6 +2,7 @@ from subprocess import CalledProcessError, run
 import os
 import platform
 import shutil
+import time
 
 if platform.system() == "Windows":
     SINGLEFILE_BINARY_PATH = os.path.join("node_modules", ".bin", "single-file.cmd")
@@ -55,7 +56,7 @@ def override_chrome_path(path: str):
 def addQuotes(str):
     return "\"" + str.strip("\"") + "\""
 
-def download_page(url, cookies_path, output_path, output_name_template = "", additional_args = ()):
+def download_page(url, cookies_path, output_path, output_name_template = "", additional_args = (), verbose=False):
     args = [
         addQuotes(SINGLEFILE_BINARY_PATH),
     ]
@@ -76,14 +77,60 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
 
     try:
         cmd = " ".join(args)
-        print(cmd)
+        if verbose:
+            print(f"    Executing: {cmd}")
+        
         proc = run(cmd, shell=True, check=True, capture_output=True)
-        if stdout := proc.stdout.strip():
-            print(stdout)
-        if stderr := proc.stderr.strip():
-            raise CalledProcessError(proc.returncode, proc.args, output=stdout, stderr=stderr)
+        
+        # Check if the downloaded page is a login page
+        # Retry logic to handle file locking race condition on Windows
+        max_retries = 3
+        retry_delay = 0.1 # seconds
+        for attempt in range(max_retries):
+            try:
+                with open(os.path.join(output_path, output_name_template), "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                # More robust login page detection logic
+                login_indicators = [
+                    "<title>Log in to Canvas</title>",
+                    'id="new_login_data"',
+                    'autocomplete="current-password"',
+                ]
+
+                if any(indicator in content for indicator in login_indicators):
+                    # Clean up the invalid file
+                    os.remove(os.path.join(output_path, output_name_template))
+                    raise Exception("Authentication failed, downloaded a login page. Please update your cookies.")
+
+                # If we succeed, break the loop
+                break
+
+            # The file may not be available immediately when the SingleFile CLI
+            # returns, especially on Windows where chrome can still be
+            # flushing the content to disk. Treat this the same way we already
+            # treat a temporary file lock – wait a moment and retry.
+            except (PermissionError, FileNotFoundError):
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                else:
+                    # Re-raise the exception on the last attempt so that the
+                    # caller can handle it.
+                    raise
+
+        if verbose:
+            if stdout := proc.stdout.strip():
+                    print(stdout)
+            if stderr := proc.stderr.strip():
+                # Single-file puts non-error info in stderr, so only show in verbose
+                print(stderr)
+
+    except CalledProcessError as e:
+        # Re-raise with more context
+        raise Exception(f"SingleFile failed for {url}. Stderr: {e.stderr.decode('utf-8')}") from e
     except Exception as e:
-        print(f"Was not able to save the URL {url} using singlefile. The reported error was:", e)
+        # Catch our login page exception or others
+        raise e
 
 #if __name__ == "__main__":
     #download_page("https://www.google.com/", "", "./output/test", "test.html")
