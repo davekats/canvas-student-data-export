@@ -4,6 +4,7 @@ import os
 import itertools
 import re
 import string
+import unicodedata
 import argparse
 import sys
 
@@ -277,6 +278,11 @@ def makeValidFilename(input_str):
     if(not input_str):
         return input_str
 
+    # Normalize Unicode and whitespace
+    input_str = unicodedata.normalize('NFKC', input_str)
+    input_str = input_str.replace("\u00A0", " ") # NBSP to space
+    input_str = re.sub(r"\s+", " ", input_str)
+
     # Remove invalid characters
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     input_str = input_str.replace("+"," ") # Canvas default for spaces
@@ -293,6 +299,11 @@ def makeValidFilename(input_str):
     return input_str
 
 def makeValidFolderPath(input_str):
+    # Normalize Unicode and whitespace
+    input_str = unicodedata.normalize('NFKC', input_str)
+    input_str = input_str.replace("\u00A0", " ") # NBSP to space
+    input_str = re.sub(r"\s+", " ", input_str)
+
     # Remove invalid characters
     valid_chars = "-_.()/ %s%s" % (string.ascii_letters, string.digits)
     input_str = input_str.replace("+"," ") # Canvas default for spaces

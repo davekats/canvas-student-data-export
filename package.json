@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "single-file-cli": "github:gildas-lormeau/single-file-cli"
+    "single-file-cli": "2.0.75"
   }
 }

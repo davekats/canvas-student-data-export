@@ -9,6 +9,9 @@ if platform.system() == "Windows":
 else:
     SINGLEFILE_BINARY_PATH = os.path.join("node_modules", ".bin", "single-file")
 
+# Prefer calling the Node entry directly for reliable cross-platform arg passing
+SINGLEFILE_NODE_ENTRY = os.path.join("node_modules", "single-file-cli", "single-file-node.js")
+
 # Default Chrome/Chromium executable path is determined heuristically per-OS.
 
 
@@ -57,79 +60,105 @@ def addQuotes(str):
     return "\"" + str.strip("\"") + "\""
 
 def download_page(url, cookies_path, output_path, output_name_template = "", additional_args = (), verbose=False):
-    args = [
-        addQuotes(SINGLEFILE_BINARY_PATH),
-    ]
+    # Build full output path we expect SingleFile to create
+    expected_output = os.path.join(output_path, output_name_template) if output_name_template else output_path
 
-    if CHROME_PATH:
-        args.append("--browser-executable-path=" + addQuotes(CHROME_PATH.strip("\"")))
-
-    args.extend([
-        "--browser-cookies-file=" + addQuotes(cookies_path),
-        "--output-directory=" + addQuotes(output_path),
-        addQuotes(url),
-    ])
-
-    if(output_name_template != ""):
-        args.append("--filename-template=" + addQuotes(output_name_template))
-
-    args.extend(additional_args)
+    # Prepare argument list for robust cross-platform execution
+    node_path = shutil.which("node")
+    use_shell_string = False
+    if node_path and os.path.exists(SINGLEFILE_NODE_ENTRY):
+        cmd_args = [
+            node_path,
+            SINGLEFILE_NODE_ENTRY,
+            url,
+            expected_output,
+            "--filename-conflict-action=overwrite",
+        ]
+        if CHROME_PATH:
+            cmd_args.append("--browser-executable-path=" + CHROME_PATH.strip("\""))
+        if cookies_path:
+            cmd_args.append("--browser-cookies-file=" + cookies_path)
+        # Append any additional CLI args as-is
+        cmd_args.extend(list(additional_args))
+    else:
+        # Fallback to the shim in node_modules/.bin using a shell command
+        use_shell_string = True
+        args = [
+            addQuotes(SINGLEFILE_BINARY_PATH),
+            addQuotes(url),
+            addQuotes(expected_output),
+            "--filename-conflict-action=overwrite",
+        ]
+        if CHROME_PATH:
+            args.append("--browser-executable-path=" + addQuotes(CHROME_PATH.strip("\"")))
+        if cookies_path:
+            args.append("--browser-cookies-file=" + addQuotes(cookies_path))
+        args.extend(additional_args)
+        cmd_args = " ".join(args)
 
     try:
-        cmd = " ".join(args)
         if verbose:
-            print(f"    Executing: {cmd}")
-        
-        proc = run(cmd, shell=True, check=True, capture_output=True)
-        
-        # Check if the downloaded page is a login page
-        # Retry logic to handle file locking race condition on Windows
-        max_retries = 3
-        retry_delay = 0.1 # seconds
-        for attempt in range(max_retries):
+            if isinstance(cmd_args, list):
+                print(f"    Executing: {' '.join(cmd_args)}")
+            else:
+                print(f"    Executing: {cmd_args}")
+
+        proc = run(cmd_args, shell=use_shell_string, check=True, capture_output=True)
+
+        # Wait for the file to exist and be readable (handles Windows write/lock delays)
+        start_time = time.monotonic()
+        deadline = start_time + 10.0  # seconds
+        delay = 0.1
+        last_error = None
+        while True:
             try:
-                with open(os.path.join(output_path, output_name_template), "r", encoding="utf-8") as f:
+                if not os.path.exists(expected_output):
+                    raise FileNotFoundError(expected_output)
+                with open(expected_output, "r", encoding="utf-8") as f:
                     content = f.read()
 
-                # More robust login page detection logic
+                # Detect login page content
                 login_indicators = [
                     "<title>Log in to Canvas</title>",
                     'id="new_login_data"',
                     'autocomplete="current-password"',
                 ]
-
                 if any(indicator in content for indicator in login_indicators):
                     # Clean up the invalid file
-                    os.remove(os.path.join(output_path, output_name_template))
+                    try:
+                        os.remove(expected_output)
+                    except Exception:
+                        pass
                     raise Exception("Authentication failed, downloaded a login page. Please update your cookies.")
 
-                # If we succeed, break the loop
-                break
-
-            # The file may not be available immediately when the SingleFile CLI
-            # returns, especially on Windows where chrome can still be
-            # flushing the content to disk. Treat this the same way we already
-            # treat a temporary file lock – wait a moment and retry.
-            except (PermissionError, FileNotFoundError):
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                else:
-                    # Re-raise the exception on the last attempt so that the
-                    # caller can handle it.
-                    raise
+                break  # success
+            except (PermissionError, FileNotFoundError) as e:
+                last_error = e
+                now = time.monotonic()
+                if now >= deadline:
+                    raise last_error
+                time.sleep(min(delay, deadline - now))
+                delay = min(delay * 1.5, 1.0)
 
         if verbose:
-            if stdout := proc.stdout.strip():
-                    print(stdout)
-            if stderr := proc.stderr.strip():
-                # Single-file puts non-error info in stderr, so only show in verbose
-                print(stderr)
+            stdout_text = proc.stdout.decode("utf-8", errors="replace").strip()
+            stderr_text = proc.stderr.decode("utf-8", errors="replace").strip()
+            if stdout_text:
+                print(stdout_text)
+            if stderr_text:
+                # SingleFile prints non-error info to stderr; show only in verbose mode
+                print(stderr_text)
 
     except CalledProcessError as e:
         # Re-raise with more context
-        raise Exception(f"SingleFile failed for {url}. Stderr: {e.stderr.decode('utf-8')}") from e
+        stderr_text = ""
+        try:
+            stderr_text = e.stderr.decode('utf-8', errors='replace')
+        except Exception:
+            pass
+        raise Exception(f"SingleFile failed for {url}. Stderr: {stderr_text}") from e
     except Exception as e:
-        # Catch our login page exception or others
+        # Propagate our own exceptions
         raise e
 
 #if __name__ == "__main__":
