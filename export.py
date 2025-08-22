@@ -850,7 +850,12 @@ def getDiscussionView(discussion_topic):
                         e, "discussion topic reply processing"
                     )
                     CanvasErrorHandler.log_error(error_type, message, verbose=args.verbose)
-                    extraction_stats.error_count += 1
+                    if error_type == "student_limitation":
+                        extraction_stats.student_limitation_warnings += 1
+                    elif error_type == "not_found":
+                        pass  # Already handled by log_error
+                    else:
+                        extraction_stats.error_count += 1
 
                 discussion_view.topic_entries.append(topic_entry_view)
         except Exception as e:
@@ -858,7 +863,12 @@ def getDiscussionView(discussion_topic):
                 e, "discussion topic entry processing"
             )
             CanvasErrorHandler.log_error(error_type, message, verbose=args.verbose)
-            extraction_stats.error_count += 1
+            if error_type == "student_limitation":
+                extraction_stats.student_limitation_warnings += 1
+            elif error_type == "not_found":
+                pass  # Already handled by log_error
+            else:
+                extraction_stats.error_count += 1
         
     # Amount of pages  
     discussion_view.amount_pages = int(topic_entries_counter/50) + 1 # Typically 50 topic entries are stored on a page before it creates another page.
