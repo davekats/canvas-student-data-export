@@ -105,11 +105,22 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
 
         proc = run(cmd_args, shell=use_shell_string, check=True, capture_output=True)
 
+        # Decode outputs immediately so we can surface them even if the file check fails
+        stdout_text = proc.stdout.decode("utf-8", errors="replace").strip()
+        stderr_text = proc.stderr.decode("utf-8", errors="replace").strip()
+
+        # Optionally show SingleFile logs right after the process exits
+        if verbose:
+            if stdout_text:
+                print(stdout_text)
+            if stderr_text:
+                # SingleFile prints non-error info to stderr; show only in verbose mode
+                print(stderr_text)
+
         # Wait for the file to exist and be readable (handles Windows write/lock delays)
         start_time = time.monotonic()
-        deadline = start_time + 10.0  # seconds
+        deadline = start_time + 15.0  # seconds
         delay = 0.1
-        last_error = None
         while True:
             try:
                 if not os.path.exists(expected_output):
@@ -133,30 +144,42 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
 
                 break  # success
             except (PermissionError, FileNotFoundError) as e:
-                last_error = e
                 now = time.monotonic()
                 if now >= deadline:
-                    raise last_error
+                    # Enrich the error with SingleFile logs for better diagnostics
+                    elapsed = now - start_time
+                    details = [
+                        f"SingleFile produced no readable output within {elapsed:.1f}s",
+                        f"URL: {url}",
+                        f"Expected path: {expected_output}",
+                        f"Exit code: {proc.returncode}",
+                    ]
+                    if stdout_text:
+                        details.append(f"stdout:\n{stdout_text}")
+                    if stderr_text:
+                        details.append(f"stderr:\n{stderr_text}")
+                    raise Exception("\n".join(details)) from e
                 time.sleep(min(delay, deadline - now))
                 delay = min(delay * 1.5, 1.0)
 
-        if verbose:
-            stdout_text = proc.stdout.decode("utf-8", errors="replace").strip()
-            stderr_text = proc.stderr.decode("utf-8", errors="replace").strip()
-            if stdout_text:
-                print(stdout_text)
-            if stderr_text:
-                # SingleFile prints non-error info to stderr; show only in verbose mode
-                print(stderr_text)
-
     except CalledProcessError as e:
-        # Re-raise with more context
+        # Re-raise with more context including both stdout and stderr
         stderr_text = ""
+        stdout_text = ""
         try:
-            stderr_text = e.stderr.decode('utf-8', errors='replace')
+            stderr_text = e.stderr.decode('utf-8', errors='replace') if e.stderr is not None else ""
         except Exception:
             pass
-        raise Exception(f"SingleFile failed for {url}. Stderr: {stderr_text}") from e
+        try:
+            stdout_text = e.stdout.decode('utf-8', errors='replace') if e.stdout is not None else ""
+        except Exception:
+            pass
+        msg_parts = [f"SingleFile failed for {url}."]
+        if stdout_text:
+            msg_parts.append(f"stdout:\n{stdout_text}")
+        if stderr_text:
+            msg_parts.append(f"stderr:\n{stderr_text}")
+        raise Exception("\n".join(msg_parts)) from e
     except Exception as e:
         # Propagate our own exceptions
         raise e
