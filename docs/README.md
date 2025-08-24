@@ -90,6 +90,9 @@ USER_ID: 123456
 COOKIES_PATH: ./cookies.txt
 # (Optional) Path to your Chrome/Chromium executable if SingleFile cannot find it.
 # CHROME_PATH: C:\Program Files\Google\Chrome\Application\chrome.exe
+# (Optional) Timeout in seconds for SingleFile to capture a page. Default: 60
+# Increase this if you see "Capture timeout" errors during HTML snapshots.
+# SINGLEFILE_TIMEOUT: 180
 # (Optional) A list of course IDs to skip when exporting data.
 # COURSES_TO_SKIP:
 #   - 12345
@@ -103,6 +106,7 @@ COOKIES_PATH: ./cookies.txt
 -   **`USER_ID`**: After logging into Canvas, visit `https://<your-canvas-url>/api/v1/users/self`. Your browser will show a JSON response; find the `id` field.
 -   **`COOKIES_PATH`**: Required **only if** you use the `--singlefile` flag. Browser cookies are needed to download complete HTML pages as if you were logged in. The script will now detect if your cookies are expired or invalid and will stop downloading HTML pages to prevent errors. For best results, log into Canvas and then export your cookies right before running the script. Use a browser extension like "Get cookies.txt Clean" for Chrome to export them in Netscape format.
 -   **`CHROME_PATH`** (Optional): The script attempts to auto-detect Chrome/Chromium on Windows, macOS, and Linux. If it fails, you can specify the path here.
+-   **`SINGLEFILE_TIMEOUT`** (Optional): Maximum time in seconds to wait for SingleFile to capture a single HTML page. Default is `60` seconds. If you have a slow connection or a busy computer and see "Capture timeout" errors, increase this value.
 -   **`COURSES_TO_SKIP`** (Optional): A list of course IDs to exclude from the export. To find a course ID, go to the course's homepage and look at the URL for the number that follows `/courses/`.
 
 ## Running the Exporter

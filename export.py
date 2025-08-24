@@ -12,7 +12,7 @@ import sys
 from bs4 import BeautifulSoup
 from canvasapi import Canvas
 from canvasapi.exceptions import ResourceDoesNotExist, Unauthorized, Forbidden, InvalidAccessToken, CanvasException
-from singlefile import download_page, override_chrome_path
+from singlefile import download_page, override_chrome_path, override_singlefile_timeout
 import dateutil.parser
 import jsonpickle
 import requests
@@ -1257,6 +1257,14 @@ if __name__ == "__main__":
     chrome_path_override = creds.get("CHROME_PATH")
     if chrome_path_override:
         override_chrome_path(chrome_path_override)
+
+    # Optional: Override SingleFile capture timeout (in seconds)
+    singlefile_timeout_override = creds.get("SINGLEFILE_TIMEOUT")
+    if singlefile_timeout_override is not None:
+        try:
+            override_singlefile_timeout(float(singlefile_timeout_override))
+        except (ValueError, TypeError):
+            print(f"Warning: Invalid SINGLEFILE_TIMEOUT value in {args.config}; using default.")
 
     # Update output directory
     DL_LOCATION = args.output

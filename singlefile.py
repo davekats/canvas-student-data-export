@@ -51,13 +51,26 @@ def _detect_chrome_path() -> str:
 CHROME_PATH = _detect_chrome_path()
 
 
+# Default timeout in seconds for SingleFile to complete. Can be overridden.
+SINGLEFILE_TIMEOUT = 60.0  # 1 minute
+
+
 def override_chrome_path(path: str):
     """Allow callers to override the detected Chrome path at runtime."""
     global CHROME_PATH
     CHROME_PATH = path.strip()
 
+
+def override_singlefile_timeout(timeout: float):
+    """Allow callers to override the SingleFile timeout at runtime."""
+    global SINGLEFILE_TIMEOUT
+    if timeout > 0:
+        SINGLEFILE_TIMEOUT = timeout
+
+
 def addQuotes(str):
     return "\"" + str.strip("\"") + "\""
+
 
 def download_page(url, cookies_path, output_path, output_name_template = "", additional_args = (), verbose=False):
     # Build full output path we expect SingleFile to create
@@ -66,6 +79,10 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
     # Prepare argument list for robust cross-platform execution
     node_path = shutil.which("node")
     use_shell_string = False
+
+    # Convert timeout to milliseconds for SingleFile CLI argument
+    timeout_ms = str(int(SINGLEFILE_TIMEOUT * 1000))
+
     if node_path and os.path.exists(SINGLEFILE_NODE_ENTRY):
         cmd_args = [
             node_path,
@@ -73,6 +90,7 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
             url,
             expected_output,
             "--filename-conflict-action=overwrite",
+            "--browser-capture-max-time=" + timeout_ms,
         ]
         if CHROME_PATH:
             cmd_args.append("--browser-executable-path=" + CHROME_PATH.strip("\""))
@@ -88,6 +106,7 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
             addQuotes(url),
             addQuotes(expected_output),
             "--filename-conflict-action=overwrite",
+            "--browser-capture-max-time=" + timeout_ms,
         ]
         if CHROME_PATH:
             args.append("--browser-executable-path=" + addQuotes(CHROME_PATH.strip("\"")))
@@ -119,7 +138,7 @@ def download_page(url, cookies_path, output_path, output_name_template = "", add
 
         # Wait for the file to exist and be readable (handles Windows write/lock delays)
         start_time = time.monotonic()
-        deadline = start_time + 15.0  # seconds
+        deadline = start_time + SINGLEFILE_TIMEOUT + 5.0  # seconds, add buffer
         delay = 0.1
         while True:
             try:
