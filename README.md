@@ -139,6 +139,18 @@ python export.py -o /path/to/my-canvas-backup --singlefile
 
 After the export is complete, the tool will display a detailed summary of all the data that was successfully extracted, including counts of assignments, files, and pages, as well as any warnings or errors encountered.
 
+**To use singlefile when running from export.py**
+
+If you are running the program from export.py, here is how to add custom options: 
+
+Go to line 1229, where it should say
+
+```bash
+args = parser.parse_args()
+# add this
+args.singlefile = True
+```
+
 # Contribute
 
 I would love to see this script's functionality expanded and improved! I welcome all pull requests 🙂  

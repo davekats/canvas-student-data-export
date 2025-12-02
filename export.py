@@ -152,7 +152,7 @@ MAX_FOLDER_NAME_SIZE = 70
 stop_html_downloads = False
 
 
-class moduleItemView():
+class moduleItemView:
     id = 0
     
     title = ""
@@ -162,7 +162,7 @@ class moduleItemView():
     external_url = ""
 
 
-class moduleView():
+class moduleView:
     id = 0
 
     name = ""
@@ -172,7 +172,7 @@ class moduleView():
         self.items = []
 
 
-class pageView():
+class pageView:
     id = 0
 
     title = ""
@@ -181,7 +181,7 @@ class pageView():
     last_updated_date = ""
 
 
-class topicReplyView():
+class topicReplyView:
     id = 0
 
     author = ""
@@ -189,7 +189,7 @@ class topicReplyView():
     body = ""
 
 
-class topicEntryView():
+class topicEntryView:
     id = 0
 
     author = ""
@@ -201,7 +201,7 @@ class topicEntryView():
         self.topic_replies = []
 
 
-class discussionView():
+class discussionView:
     id = 0
 
     title = ""
@@ -217,7 +217,7 @@ class discussionView():
         self.topic_entries = []
 
 
-class submissionView():
+class submissionView:
     id = 0
 
     attachments = []
@@ -234,13 +234,13 @@ class submissionView():
     def __init__(self):
         self.attachments = []
 
-class attachmentView():
+class attachmentView:
     id = 0
 
     filename = ""
     url = ""
 
-class assignmentView():
+class assignmentView:
     id = 0
 
     title = ""
@@ -257,7 +257,7 @@ class assignmentView():
         self.submissions = []
 
 
-class courseView():
+class courseView:
     course_id = 0
     
     term = ""
@@ -274,8 +274,9 @@ class courseView():
         self.discussions = []
         self.modules = []
 
+
 def makeValidFilename(input_str):
-    if(not input_str):
+    if not input_str:
         return input_str
 
     # Normalize Unicode and whitespace
@@ -322,7 +323,7 @@ def makeValidFolderPath(input_str):
     return input_str
 
 def shortenFileName(string, shorten_by) -> str:
-    if (not string or shorten_by <= 0):
+    if not string or shorten_by <= 0:
         return string
 
     # Shorten string by specified value + 1 for "-" to indicate incomplete file name (trailing periods not allowed)
@@ -493,7 +494,7 @@ def downloadCourseFiles(course, course_view):
         CanvasErrorHandler.log_error(error_type, message, verbose=args.verbose)
 
 
-def download_submission_attachments(course, course_view):
+def download_submission_attachments(course_view):
     course_dir = os.path.join(DL_LOCATION, course_view.term,
                               course_view.course_code)
 
@@ -506,9 +507,9 @@ def download_submission_attachments(course, course_view):
             assignment_title = makeValidFilename(str(assignment.title))
             assignment_title = shortenFileName(assignment_title, len(assignment_title) - MAX_FOLDER_NAME_SIZE)
             attachment_dir = os.path.join(course_dir, "assignments", assignment_title)
-            if(len(assignment.submissions)!=1):
+            if len(assignment.submissions)!=1:
                 attachment_dir = os.path.join(attachment_dir,str(submission.user_id))
-            if (not os.path.exists(attachment_dir)) and (submission.attachments):
+            if (not os.path.exists(attachment_dir)) and submission.attachments:
                 os.makedirs(attachment_dir)
             for attachment in submission.attachments:
                 filepath = os.path.join(attachment_dir, makeValidFilename(str(attachment.id) +
@@ -915,9 +916,6 @@ def getCourseView(course):
 
     print(f"Working on: {course_view.term}: {course_view.name}")
 
-    # Track HTML pages saved per course
-    html_pages_saved_in_course = 0
-
     # Course assignments
     print("  Getting assignments")
     course_view.assignments = findCourseAssignments(course)
@@ -961,6 +959,7 @@ def exportAllCourseData(course_view):
     extraction_stats.json_files_created += 1
     print(f"      ✓ Data saved to: {course_output_path}")
 
+
 def _download_page_if_not_exists(url, output_path, cookies_path, additional_args=(), verbose=False):
     """
     Downloads a single HTML page if it doesn't exist, updating stats.
@@ -993,6 +992,7 @@ def _download_page_if_not_exists(url, output_path, cookies_path, additional_args
         print(f"      ✓ Already exists: {filename}")
         return True # Return True because the file exists, which is a success condition for the caller
 
+
 def downloadCourseHTML(api_url, cookies_path, verbose=False):
     if not cookies_path or stop_html_downloads:
         return 0
@@ -1003,6 +1003,7 @@ def downloadCourseHTML(api_url, cookies_path, verbose=False):
     if _download_page_if_not_exists(url, course_list_path, cookies_path, verbose=verbose):
         return 1
     return 0
+
 
 def downloadCourseHomePageHTML(api_url, course_view, cookies_path, verbose=False):
     if not cookies_path or stop_html_downloads:
@@ -1015,6 +1016,7 @@ def downloadCourseHomePageHTML(api_url, course_view, cookies_path, verbose=False
     if _download_page_if_not_exists(url, homepage_path, cookies_path, verbose=verbose):
         return 1
     return 0
+
 
 def downloadCourseGradesHTML(api_url, course_view, cookies_path, verbose=False):
     if not cookies_path or stop_html_downloads:
@@ -1067,7 +1069,8 @@ def downloadCourseGradesHTML(api_url, course_view, cookies_path, verbose=False):
             grades_file.truncate()
         return 1
     return 0
-        
+
+
 def downloadAssignmentPages(api_url, course_view, cookies_path, verbose=False):
     pages_saved = 0
     if not cookies_path or not course_view.assignments or stop_html_downloads:
@@ -1115,6 +1118,7 @@ def downloadAssignmentPages(api_url, course_view, cookies_path, verbose=False):
                         pages_saved += 1
     return pages_saved
 
+
 def downloadCourseModulePages(api_url, course_view, cookies_path, verbose=False): 
     pages_saved = 0
     if not cookies_path or not course_view.modules or stop_html_downloads:
@@ -1141,6 +1145,7 @@ def downloadCourseModulePages(api_url, course_view, cookies_path, verbose=False)
                 if _download_page_if_not_exists(item.url, module_item_path, cookies_path, verbose=verbose):
                     pages_saved += 1
     return pages_saved
+
 
 def downloadCourseAnnouncementPages(api_url, course_view, cookies_path, verbose=False):
     pages_saved = 0
@@ -1174,7 +1179,8 @@ def downloadCourseAnnouncementPages(api_url, course_view, cookies_path, verbose=
             if _download_page_if_not_exists(page_url, page_path, cookies_path, verbose=verbose):
                 pages_saved += 1
     return pages_saved
-        
+
+
 def downloadCourseDiscussionPages(api_url, course_view, cookies_path, verbose=False):
     pages_saved = 0
     if not cookies_path or not course_view.discussions or stop_html_downloads:
@@ -1207,6 +1213,7 @@ def downloadCourseDiscussionPages(api_url, course_view, cookies_path, verbose=Fa
             if _download_page_if_not_exists(page_url, page_path, cookies_path, verbose=verbose):
                 pages_saved += 1
     return pages_saved
+
 
 if __name__ == "__main__":
 
