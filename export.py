@@ -150,6 +150,7 @@ MAX_FOLDER_NAME_SIZE = 70
 
 # Global flag to stop HTML downloads if cookies are invalid
 stop_html_downloads = False
+SKIP_SUBMISSIONS = False
 
 
 class moduleItemView():
@@ -647,6 +648,10 @@ def findCourseAssignments(course):
             assignment_view.updated_url = str(assignment.submissions_download_url).split("submissions?")[0] if \
                 hasattr(assignment, "submissions_download_url") else ""
 
+            if SKIP_SUBMISSIONS:
+                assignment_views.append(assignment_view)
+                extraction_stats.assignments_found += 1
+                continue
             try:
                 try: # Download all submissions for entire class
                     submissions = assignment.get_submissions()
@@ -1218,6 +1223,7 @@ if __name__ == "__main__":
     parser.add_argument("--singlefile", action="store_true", help="Enable HTML snapshot capture with SingleFile.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output for debugging.")
     parser.add_argument("--version", action="version", version="Canvas Student Data Export Tool 1.0")
+    parser.add_argument("--skip-submissions", action="store_true", help="Skip downloading assignment submissions and their attachments.")
 
     args = parser.parse_args()
 
@@ -1253,6 +1259,7 @@ if __name__ == "__main__":
     # Use .get() to safely access optional/conditionally required keys
     COOKIES_PATH = creds.get("COOKIES_PATH", "")
     COURSES_TO_SKIP = creds.get("COURSES_TO_SKIP", [])
+    SKIP_SUBMISSIONS = args.skip_submissions
 
     chrome_path_override = creds.get("CHROME_PATH")
     if chrome_path_override:
@@ -1322,8 +1329,9 @@ if __name__ == "__main__":
             print("  Downloading all files")
             downloadCourseFiles(course, course_view)
 
-            print("  Downloading submission attachments")
-            download_submission_attachments(course, course_view)
+            if not SKIP_SUBMISSIONS:
+                print("  Downloading submission attachments")
+                download_submission_attachments(course, course_view)
 
             print("  Getting modules and downloading module files")
             course_view.modules = findCourseModules(course, course_view)

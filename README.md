@@ -126,6 +126,8 @@ python export.py [options]
 | `--singlefile`          | Enable HTML snapshot capture with SingleFile. | Disabled           |
 | `-v`, `--verbose`       | Enable verbose output for debugging.          | Disabled           |
 | `--version`             | Show the version of the tool and exit.        | N/A                |
+| `--version`             | Show the version of the tool and exit.        | N/A                |
+| `--skip-submissions`    | Skip submission download                      | Disabled           |
 
 **Example:**
 
