@@ -128,6 +128,7 @@ python export.py [options]
 | `--version`             | Show the version of the tool and exit.        | N/A                |
 | `--version`             | Show the version of the tool and exit.        | N/A                |
 | `--skip-submissions`    | Skip submission download                      | Disabled           |
+| `--skip-embedded_files` | Skip embedded files in pages download         | Disabled           |
 
 **Example:**
 

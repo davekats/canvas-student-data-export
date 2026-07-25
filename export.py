@@ -83,6 +83,7 @@ class ExtractionStats:
         self.module_items_found = 0
         self.files_downloaded = 0
         self.attachments_downloaded = 0
+        self.embedded_files_downloaded = 0
         self.html_pages_downloaded = 0
         self.json_files_created = 0
         self.student_limitation_warnings = 0
@@ -101,7 +102,8 @@ Data Extraction Summary:
 
 Files Downloaded:
   • {self.files_downloaded} course files downloaded
-  • {self.attachments_downloaded} assignment attachments downloaded"""
+  • {self.attachments_downloaded} assignment attachments downloaded
+  • {self.embedded_files_downloaded} embedded files downloaded (linked inside assignment/page/announcement/discussion content)"""
 
         if singlefile_enabled:
             summary_text += f"\n  • {self.html_pages_downloaded} HTML pages captured"
@@ -151,6 +153,7 @@ MAX_FOLDER_NAME_SIZE = 70
 # Global flag to stop HTML downloads if cookies are invalid
 stop_html_downloads = False
 SKIP_SUBMISSIONS = False
+SKIP_EMBEDDED_FILES = False
 
 
 class moduleItemView():
@@ -529,6 +532,125 @@ def download_submission_attachments(course, course_view):
                         extraction_stats.error_count += 1
                 else:
                     print(f"      ✓ Already exists: {attachment.filename}")
+
+
+def extractCanvasFileIds(html_content):
+    """
+    Parse a chunk of Canvas-rendered HTML (assignment description, page body,
+    announcement/discussion body, etc.) and pull out the numeric file IDs of
+    any links that point to a Canvas-hosted file.
+
+    Canvas file links embedded in rich content typically look like one of:
+      https://<canvas>/courses/<course_id>/files/<file_id>/download?...
+      https://<canvas>/courses/<course_id>/files/<file_id>?wrap=1
+      https://<canvas>/files/<file_id>/download
+      /courses/<course_id>/files/<file_id>
+
+    Returns a list of unique file ID strings. Returns an empty list if
+    html_content is empty or nothing matches.
+    """
+    if not html_content:
+        return []
+
+    file_ids = set()
+    try:
+        soup = BeautifulSoup(html_content, "html.parser")
+        links = soup.find_all("a", href=True)
+        for link in links:
+            href = link["href"]
+            match = re.search(r"/files/(\d+)", href)
+            if match:
+                file_ids.add(match.group(1))
+    except Exception:
+        # Malformed HTML shouldn't crash the export; just skip it.
+        pass
+
+    return list(file_ids)
+
+
+def downloadEmbeddedFiles(course, html_content, dest_dir):
+    """
+    Finds Canvas file links embedded within a piece of HTML content (e.g. an
+    assignment description, page body, or discussion/announcement body) and
+    downloads each one into dest_dir/embedded_files/.
+
+    This is what catches files linked inline in text (like a "document" link
+    inside an assignment description) that aren't proper Course Files,
+    Module file items, or submission attachments, and would otherwise be
+    silently skipped.
+
+    Returns the number of files newly downloaded.
+    """
+    if SKIP_EMBEDDED_FILES:
+        return 0
+
+    file_ids = extractCanvasFileIds(html_content)
+    if not file_ids:
+        return 0
+
+    downloaded = 0
+    embedded_dir = os.path.join(dest_dir, "embedded_files")
+
+    for file_id in file_ids:
+        try:
+            embedded_file = course.get_file(file_id)
+
+            if not os.path.exists(embedded_dir):
+                os.makedirs(embedded_dir)
+
+            filepath = os.path.join(embedded_dir, makeValidFilename(str(embedded_file.display_name)))
+
+            print(f"    Downloading embedded file: {embedded_file.display_name}...")
+            if not os.path.exists(filepath):
+                embedded_file.download(filepath)
+                extraction_stats.embedded_files_downloaded += 1
+                downloaded += 1
+                print(f"      ✓ Saved: {embedded_file.display_name}")
+            else:
+                print(f"      ✓ Already exists: {embedded_file.display_name}")
+        except Exception as e:
+            error_type, message = CanvasErrorHandler.handle_canvas_exception(
+                e, f"embedded file download (file id {file_id})"
+            )
+            if error_type == "student_limitation":
+                extraction_stats.student_limitation_warnings += 1
+            elif error_type == "not_found":
+                pass  # Already handled by log_error
+            else:
+                extraction_stats.error_count += 1
+            CanvasErrorHandler.log_error(error_type, message, verbose=args.verbose)
+
+    return downloaded
+
+
+def download_embedded_files_for_items(course, course_view, items, subfolder, get_title, get_body):
+    """
+    Generic helper that walks a list of items (assignments, pages,
+    announcements, or discussions) and downloads any Canvas files linked
+    inside each item's body/description text.
+
+    Files land at:
+      output/[Term]/[Course]/[subfolder]/[item title]/embedded_files/
+
+    which mirrors the existing folder layout used for HTML snapshots and
+    submission attachments.
+    """
+    if SKIP_EMBEDDED_FILES or not items:
+        return 0
+
+    total_downloaded = 0
+    base_dir = os.path.join(DL_LOCATION, course_view.term,
+                            course_view.course_code, subfolder)
+
+    for item in items:
+        title = makeValidFilename(str(get_title(item)))
+        title = shortenFileName(title, len(title) - MAX_FOLDER_NAME_SIZE)
+        item_dir = os.path.join(base_dir, title)
+
+        body = get_body(item)
+        total_downloaded += downloadEmbeddedFiles(course, body, item_dir)
+
+    return total_downloaded
 
 
 def getCoursePageUrls(course):
@@ -1224,6 +1346,7 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output for debugging.")
     parser.add_argument("--version", action="version", version="Canvas Student Data Export Tool 1.0")
     parser.add_argument("--skip-submissions", action="store_true", help="Skip downloading assignment submissions and their attachments.")
+    parser.add_argument("--skip-embedded-files", action="store_true", help="Skip downloading files linked inside assignment, page, announcement, and discussion content (e.g. a PDF link embedded in an assignment's description text).")
 
     args = parser.parse_args()
 
@@ -1260,6 +1383,7 @@ if __name__ == "__main__":
     COOKIES_PATH = creds.get("COOKIES_PATH", "")
     COURSES_TO_SKIP = creds.get("COURSES_TO_SKIP", [])
     SKIP_SUBMISSIONS = args.skip_submissions
+    SKIP_EMBEDDED_FILES = args.skip_embedded_files
 
     chrome_path_override = creds.get("CHROME_PATH")
     if chrome_path_override:
@@ -1321,6 +1445,7 @@ if __name__ == "__main__":
                 continue
             
             html_pages_saved_in_course = 0
+            embedded_files_saved_in_course = 0
 
             course_view = getCourseView(course)
 
@@ -1335,6 +1460,31 @@ if __name__ == "__main__":
 
             print("  Getting modules and downloading module files")
             course_view.modules = findCourseModules(course, course_view)
+
+            if not SKIP_EMBEDDED_FILES:
+                print("  Downloading files linked inside assignment descriptions")
+                embedded_files_saved_in_course += download_embedded_files_for_items(
+                    course, course_view, course_view.assignments, "assignments",
+                    lambda a: a.title, lambda a: a.description
+                )
+
+                print("  Downloading files linked inside pages")
+                embedded_files_saved_in_course += download_embedded_files_for_items(
+                    course, course_view, course_view.pages, "pages",
+                    lambda p: p.title, lambda p: p.body
+                )
+
+                print("  Downloading files linked inside announcements")
+                embedded_files_saved_in_course += download_embedded_files_for_items(
+                    course, course_view, course_view.announcements, "announcements",
+                    lambda a: a.title, lambda a: a.body
+                )
+
+                print("  Downloading files linked inside discussions")
+                embedded_files_saved_in_course += download_embedded_files_for_items(
+                    course, course_view, course_view.discussions, "discussions",
+                    lambda d: d.title, lambda d: d.body
+                )
 
             if COOKIES_PATH and args.singlefile:
                 print("  Downloading course home page")
@@ -1372,6 +1522,8 @@ if __name__ == "__main__":
             print(f"    • {pages_count} pages (JSON)")
             print(f"    • {announcements_count} announcements (JSON)")
             print(f"    • {discussions_count} discussions (JSON)")
+            if not SKIP_EMBEDDED_FILES:
+                print(f"    • {embedded_files_saved_in_course} embedded files downloaded")
             if COOKIES_PATH and args.singlefile:
                 print(f"    • {html_pages_saved_in_course} HTML snapshots saved")
             print()
