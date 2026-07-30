@@ -122,12 +122,33 @@ Errors Encountered: {self.error_count}
 extraction_stats = ExtractionStats()
 
 def _load_credentials(path: str) -> dict:
-    """Return a dict with API_URL, API_KEY, USER_ID, COOKIES_PATH or empty dict if file missing."""
+    """Return the YAML configuration as a dict, or an empty dict if the file is missing."""
     try:
         with open(path, "r", encoding="utf-8") as f:
             return yaml.full_load(f) or {}
     except FileNotFoundError:
         return {}
+
+
+def _student_enrollments_only(config: dict) -> bool:
+    """Return the student-only course setting, validating that it is a YAML boolean."""
+    value = config.get("STUDENT_ENROLLMENTS_ONLY", False)
+    if not isinstance(value, bool):
+        raise ValueError("STUDENT_ENROLLMENTS_ONLY must be true or false")
+    return value
+
+
+def _get_courses_to_export(canvas, student_enrollments_only: bool):
+    """Return active and completed course lists, optionally limited to student enrollments."""
+    course_query = {"include": ["term"]}
+    if student_enrollments_only:
+        course_query["enrollment_type"] = "student"
+
+    return [
+        canvas.get_courses(enrollment_state=state, **course_query)
+        for state in ("active", "completed")
+    ]
+
 
 # Placeholder globals – will be overwritten in __main__ once we have parsed CLI args.
 API_URL = ""
@@ -1254,6 +1275,12 @@ if __name__ == "__main__":
     COOKIES_PATH = creds.get("COOKIES_PATH", "")
     COURSES_TO_SKIP = creds.get("COURSES_TO_SKIP", [])
 
+    try:
+        student_enrollments_only = _student_enrollments_only(creds)
+    except ValueError as e:
+        print(f"Error: {e}.")
+        sys.exit(1)
+
     chrome_path_override = creds.get("CHROME_PATH")
     if chrome_path_override:
         override_chrome_path(chrome_path_override)
@@ -1296,10 +1323,9 @@ if __name__ == "__main__":
     all_courses_views = []
 
     print("Getting list of all courses\n")
-    courses_list = [
-        canvas.get_courses(enrollment_state = "active", include="term"),
-        canvas.get_courses(enrollment_state = "completed", include="term")
-    ]
+    if student_enrollments_only:
+        print("  Filtering to courses with a student enrollment\n")
+    courses_list = _get_courses_to_export(canvas, student_enrollments_only)
 
     skip = set(COURSES_TO_SKIP)
 
