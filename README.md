@@ -111,7 +111,7 @@ COOKIES_PATH: ./cookies.txt
 -   **`CHROME_PATH`** (Optional): The script attempts to auto-detect Chrome/Chromium on Windows, macOS, and Linux. If it fails, you can specify the path here.
 -   **`SINGLEFILE_TIMEOUT`** (Optional): Maximum time in seconds to wait for SingleFile to capture a single HTML page. Default is `60` seconds. If you have a slow connection or a busy computer and see "Capture timeout" errors, increase this value.
 -   **`COURSES_TO_SKIP`** (Optional): A list of course IDs to exclude from the export. To find a course ID, go to the course's homepage and look at the URL for the number that follows `/courses/`.
--   **`STUDENT_ENROLLMENTS_ONLY`** (Optional): Set to the YAML boolean `true` to export only courses where Canvas lists you as a student. This excludes courses where you are only a teacher, TA, observer, or designer. It defaults to `false`, preserving the existing behavior. When it is `false`, courses where you are a teacher or TA may include every student's submissions, grades, comments, and attachments that Canvas permits you to access.
+-   **`STUDENT_ENROLLMENTS_ONLY`** (Optional): Set to the YAML boolean `true` to export only courses where Canvas lists you as a student. This excludes courses where you are only a teacher, TA, observer, or designer. It defaults to `false`. When it is `false`, teacher or TA courses may cause the exporter to archive submission records for all students Canvas permits you to view, including grades, scores, and submitted attachments.
 
 ## Running the Exporter
 
